@@ -1,0 +1,543 @@
+/* =========================================
+   REQUIRED FIELD VALIDATION
+========================================= */
+
+const requiredFields = [
+
+{
+    field: document.querySelectorAll("input")[0],
+    name: "Date"
+},
+
+{
+    field: document.querySelectorAll("select")[0],
+    name: "Client"
+},
+
+{
+    field: document.querySelectorAll("select")[1],
+    name: "Case Type"
+},
+
+{
+    field: document.querySelectorAll("select")[2],
+    name: "Product"
+},
+
+{
+    field: document.querySelectorAll("select")[4],
+    name: "Support Solution"
+},
+
+{
+    field: document.querySelectorAll("input")[3],
+    name: "Support ID"
+},
+
+{
+    field: document.querySelectorAll("select")[5],
+    name: "Priority"
+},
+
+{
+    field: document.querySelectorAll("input")[4],
+    name: "Start Call"
+},
+
+{
+    field: document.querySelectorAll("input")[5],
+    name: "Reported Date"
+},
+
+{
+    field: document.querySelectorAll("input")[8],
+    name: "Next Followup Date"
+},
+
+{
+    field: document.querySelectorAll("select")[13],
+    name: "Next Followup By"
+},
+
+{
+    field: document.querySelectorAll("input")[13],
+    name: "End Call"
+}
+
+];
+
+
+/* =========================================
+   BUTTON EVENTS
+========================================= */
+
+const arrButtons =
+document.querySelectorAll(".blue-btn");
+
+arrButtons.forEach(function(objButton)
+{
+
+    objButton.addEventListener("click", function(event)
+    {
+
+        const strButtonText =
+        objButton.innerText.trim();
+
+
+        /* SAVE BUTTONS */
+
+        if(
+            strButtonText === "Save" ||
+            strButtonText === "Save & Continue" ||
+            strButtonText === "Save & New" ||
+            strButtonText === "Save & New for Same Client"
+        )
+        {
+
+            event.preventDefault();
+
+            let arrErrors = [];
+
+            requiredFields.forEach(function(objField)
+            {
+
+                if(objField.field.value.trim() === "")
+                {
+
+                    arrErrors.push(objField.name);
+
+                }
+
+            });
+
+
+            if(arrErrors.length > 0)
+            {
+
+                let strMessage =
+                "Please fill required fields:\n\n";
+
+                arrErrors.forEach(function(strError, intIndex)
+                {
+
+                    strMessage +=
+                    (intIndex + 1) + ". " +
+                    strError + "\n";
+
+                });
+
+                alert(strMessage);
+
+            }
+            else
+            {
+
+                alert(
+                "Form Submitted Successfully"
+                );
+
+            }
+
+        }
+
+
+        /* RESET BUTTON */
+
+        if(strButtonText === "Reset")
+        {
+
+            event.preventDefault();
+
+            document
+            .querySelectorAll("input")
+            .forEach(function(objInput)
+            {
+
+                if(
+                    objInput.type === "text"
+                )
+                {
+
+                    objInput.value = "";
+
+                }
+
+                if(
+                    objInput.type === "radio" ||
+                    objInput.type === "checkbox"
+                )
+                {
+
+                    objInput.checked = false;
+
+                }
+
+            });
+
+
+            document
+            .querySelectorAll("textarea")
+            .forEach(function(objTextarea)
+            {
+
+                objTextarea.value = "";
+
+            });
+
+
+            document
+            .querySelectorAll("select")
+            .forEach(function(objSelect)
+            {
+
+                objSelect.selectedIndex = 0;
+
+            });
+
+        }
+
+    });
+
+});
+
+
+/* =========================================
+   DATE AUTO FORMAT + VALIDATION
+========================================= */
+
+const arrDateInputs = [
+
+document.querySelectorAll("input")[0],
+document.querySelectorAll("input")[5],
+document.querySelectorAll("input")[8]
+
+];
+
+
+arrDateInputs.forEach(function(objInput)
+{
+
+    objInput.addEventListener("input", function()
+    {
+
+        let strValue =
+        objInput.value.replace(/\D/g,'');
+
+        if(strValue.length >= 2)
+        {
+
+            strValue =
+            strValue.slice(0,2) + "-" +
+            strValue.slice(2);
+
+        }
+
+        if(strValue.length >= 5)
+        {
+
+            strValue =
+            strValue.slice(0,5) + "-" +
+            strValue.slice(5,9);
+
+        }
+
+        objInput.value = strValue;
+
+    });
+
+
+    objInput.addEventListener("blur", function()
+    {
+
+        const arrParts =
+        objInput.value.split("-");
+
+        if(arrParts.length !== 3)
+        {
+
+            return;
+
+        }
+
+        const intDay =
+        parseInt(arrParts[0]);
+
+        const intMonth =
+        parseInt(arrParts[1]);
+
+        const intYear =
+        parseInt(arrParts[2]);
+
+
+        if(
+            intDay < 1 ||
+            intDay > 31
+        )
+        {
+
+            alert("Invalid Date");
+
+            objInput.focus();
+
+            return;
+
+        }
+
+
+        if(
+            intMonth < 1 ||
+            intMonth > 12
+        )
+        {
+
+            alert("Invalid Month");
+
+            objInput.focus();
+
+            return;
+
+        }
+
+
+        if(
+            intYear.toString().length !== 4
+        )
+        {
+
+            alert(
+            "Year must be 4 digits"
+            );
+
+            objInput.focus();
+
+            return;
+
+        }
+
+    });
+
+});
+
+
+/* =========================================
+   FOLLOWUP REQUIRED
+========================================= */
+
+const objFollowupSelect =
+document.querySelectorAll("select")[7];
+
+const objNextDateLabel =
+document.querySelectorAll("label")[14];
+
+const objNextByLabel =
+document.querySelectorAll("label")[16];
+
+
+objFollowupSelect.addEventListener(
+"change",
+function()
+{
+
+    if(this.value === "No")
+    {
+
+        objNextDateLabel.innerHTML =
+        "Next Followup Date";
+
+        objNextByLabel.innerHTML =
+        "Next Followup By";
+
+    }
+    else
+    {
+
+        objNextDateLabel.innerHTML =
+        '<span class="required">*</span> Next Followup Date';
+
+        objNextByLabel.innerHTML =
+        '<span class="required">*</span> Next Followup By';
+
+    }
+
+});
+
+
+/* =========================================
+   TIME FORMAT + VALIDATION
+========================================= */
+
+const objStartCall =
+document.querySelectorAll("input")[4];
+
+const objEndCall =
+document.querySelectorAll("input")[13];
+
+const arrTimeInputs = [
+objStartCall,
+objEndCall
+];
+
+
+arrTimeInputs.forEach(function(objInput)
+{
+
+    objInput.addEventListener("input", function()
+    {
+
+        let strValue =
+        objInput.value.replace(/\D/g,'');
+
+        if(strValue.length >= 2)
+        {
+
+            strValue =
+            strValue.slice(0,2) + ":" +
+            strValue.slice(2,4);
+
+        }
+
+        objInput.value = strValue;
+
+    });
+
+
+    objInput.addEventListener("blur", function()
+    {
+
+        const arrParts =
+        objInput.value.split(":");
+
+        if(arrParts.length !== 2)
+        {
+
+            return;
+
+        }
+
+        const intHour =
+        parseInt(arrParts[0]);
+
+        const intMinute =
+        parseInt(arrParts[1]);
+
+
+        if(
+            intHour < 1 ||
+            intHour > 12
+        )
+        {
+
+            alert(
+            "Hour must be between 1 to 12"
+            );
+
+            objInput.focus();
+
+            return;
+
+        }
+
+
+        if(
+            intMinute < 0 ||
+            intMinute > 59
+        )
+        {
+
+            alert(
+            "Minute must be between 0 to 59"
+            );
+
+            objInput.focus();
+
+            return;
+
+        }
+
+    });
+
+});
+
+
+/* =========================================
+   DURATION CALCULATION
+========================================= */
+
+const objDurationHour =
+document.querySelectorAll(
+".duration-flex input"
+)[0];
+
+const objDurationMinute =
+document.querySelectorAll(
+".duration-flex input"
+)[1];
+
+
+function calculateDuration()
+{
+
+    if(
+        objStartCall.value.length !== 5 ||
+        objEndCall.value.length !== 5
+    )
+    {
+
+        return;
+
+    }
+
+
+    const arrStartTime =
+    objStartCall.value.split(":");
+
+    const arrEndTime =
+    objEndCall.value.split(":");
+
+
+    const intStartMinutes =
+    parseInt(arrStartTime[0]) * 60 +
+    parseInt(arrStartTime[1]);
+
+    const intEndMinutes =
+    parseInt(arrEndTime[0]) * 60 +
+    parseInt(arrEndTime[1]);
+
+
+    let intDifference =
+    intEndMinutes - intStartMinutes;
+
+
+    if(intDifference < 0)
+    {
+
+        intDifference += 720;
+
+    }
+
+
+    const intHours =
+    Math.floor(intDifference / 60);
+
+    const intMinutes =
+    intDifference % 60;
+
+
+    objDurationHour.value =
+    intHours;
+
+    objDurationMinute.value =
+    intMinutes;
+
+}
+
+
+objStartCall.addEventListener(
+"keyup",
+calculateDuration
+);
+
+objEndCall.addEventListener(
+"keyup",
+calculateDuration
+);
