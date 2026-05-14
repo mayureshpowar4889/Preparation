@@ -541,3 +541,58 @@ objEndCall.addEventListener(
 "keyup",
 calculateDuration
 );
+
+
+
+
+date 
+function validateDate(input) {
+
+    // Remove all characters except numbers
+    let value = input.value.replace(/\D/g, '');
+
+    // DD-MM-YYYY format auto dash
+    if (value.length > 2 && value.length <= 4) {
+        value = value.slice(0, 2) + '-' + value.slice(2);
+    }
+    else if (value.length > 4) {
+        value = value.slice(0, 2) + '-' + value.slice(2, 4) + '-' + value.slice(4, 8);
+    }
+
+    input.value = value;
+
+    // Validation after full date entered
+    if (value.length === 10) {
+
+        let parts = value.split('-');
+
+        let day = parseInt(parts[0]);
+        let month = parseInt(parts[1]);
+        let year = parts[2];
+
+        // Day validation
+        if (day < 1 || day > 31) {
+            alert("Date must be between 1 to 31");
+            input.value = "";
+            return;
+        }
+
+        // Month validation
+        if (month < 1 || month > 12) {
+            alert("Month must be between 1 to 12");
+            input.value = "";
+            return;
+        }
+
+        // Year validation
+        if (year.length !== 4) {
+            alert("Year must be 4 digits");
+            input.value = "";
+            return;
+        }
+    }
+}
+
+
+html
+<input type="text" maxlength="10" oninput="validateDate(this)" placeholder="DD-MM-YYYY">
