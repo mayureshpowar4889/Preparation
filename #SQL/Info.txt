@@ -1,675 +1,769 @@
- document.getElementById("CaseType").value = "1";
-document.getElementById("supportby").value = "1";
-document.getElementById("assignTo").value = "1";
-document.getElementById("Priorit").value = "1";
-document.getElementById("Statusa").value = "1";
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Validation Engine</title>
 
-// const spans = document.querySelectorAll(".required");
-// for (let i = 0; i < spans.length; i++) {
-//   spans[i].style.backgroundColor = "red";
-// }
+    <style>
 
-// Use for Hide Div of Billable?
-function hideDiv() {
-    let strBillSelect = document.getElementById("billable").value;
-    let objaddDiv = document.getElementById("billYes");
-    if (strBillSelect === "No") {
-        objaddDiv.style.visibility = "hidden";
-    } else {
-        objaddDiv.style.visibility = "visible";
-    }
-}
-
-
-
-//Use for Hide Invoice Required
-function hideRequiredbill() {
-    let strGetValue = document.getElementById("Billed").value;
-    let objReq = document.getElementById("billreq");
-
-    if (strGetValue === "No") {
-        objReq.style.display = 'none';
-    } else {
-        objReq.style.display = '';
-    }
-
-}
-
-//Use for Attach Solution and Attch Note
-function hideRequiredattch() {
-
-    let objGetValue = document.getElementsByName("attach");
-    let objReqa = document.getElementById("attachid");
-    let objReqb = document.getElementById("note");
-    let objSpan = document.getElementById("attsol");
-
-    for (let intLoopCount = 0; intLoopCount < objGetValue.length; intLoopCount++) {
-        if (objGetValue[intLoopCount].checked) {
-            if (objGetValue[intLoopCount].value == "1") {
-                objReqa.style.display = '';
-            } else {
-                objReqa.style.display = 'none';
-            }
-            if (objGetValue[intLoopCount].value == "2") {
-                objReqb.style.display = 'inline';
-                objSpan.style.display = 'inline';
-            } else {
-                objReqb.style.display = 'none';
-                objSpan.style.display = 'none';
-            }
-        }
-    }
-}
-
-//Use for Type : radio button 
-function hideRequiredagent() {
-
-    let objGetValue = document.getElementsByName("type");
-    let objReqa = document.getElementById("agent");
-    let objReqb = document.getElementById("callr");
-
-    for (let intLoopCount = 0; intLoopCount < objGetValue.length; intLoopCount++) {
-        if (objGetValue[intLoopCount].checked) {
-            if (objGetValue[intLoopCount].value == "1") {
-                objReqa.style.display = '';
-            } else {
-                objReqa.style.display = 'none';
-            }
-            if (objGetValue[intLoopCount].value == "2") {
-                objReqb.style.display = 'inline';
-            } else {
-                objReqb.style.display = 'none';
-            }
-        }
-    }
-}
-
-//Use for Hide Flloweup required fields
-function hideRequiredfollow() {
-
-    let strGetValue = document.getElementById("followup-a").value;
-    let objReq = document.getElementById("reqfollow");
-    let objReqa = document.getElementById("reqfollow-a");
-    if (strGetValue === "No") {
-        objReq.style.display = 'none';
-        objReqa.style.display = 'none';
-    } else {
-        objReq.style.display = '';
-        objReqa.style.display = '';
-    }
-}
-
-//Use for file Valid
-function fileValid() {
-    let intUploadFileSize = document.getElementById("file").files[0].size;
-    let size = 2097152;
-    if (intUploadFileSize >= size) {
-        alert("File size is too big - limit 2MB")
-        document.getElementById("file").value = '';
-    }
-}
-
-
-//Use for Add more files
-function addfile() {
-
-    let intCountOfFile = document.getElementById("addfile").childElementCount;
-
-    if (intCountOfFile >= 10) {
-        alert("Only 10 files Limit");
-    }
-    else {
-        let objDiv = document.createElement("div");
-        objDiv.className = "filebox";
-        let objInput = document.createElement('input');
-        objInput.type = "file";
-        let objRemovebtn = document.createElement("button");
-        objRemovebtn.innerText = "Remove";
-        objRemovebtn.className = "remBtn";
-        objRemovebtn.onclick = function () {
-            objDiv.remove();
-        }
-        objDiv.appendChild(objInput);
-        objDiv.appendChild(objRemovebtn);
-        document.getElementById("addfile").appendChild(objDiv);
-    }
-
-}
-
-
-
-
-//buttons
-const objArrButtons = document.querySelectorAll(".btns");
-
-objArrButtons.forEach(function (objButton) {
-    objButton.addEventListener("click", handleButtons);
-});
-
-
-//    Used for handle button  
-
-
-function handleButtons(event) {
-    const strButtonText = event.target.innerText.trim();
-    if (strButtonText === "Save" ||
-        strButtonText === "Save & Continue" ||
-        strButtonText === "Save & New" ||
-        strButtonText === "Save & New for same Client") {
-
-        let arrError = [];
-
-        //Client
-        const objClient = document.getElementById("Clienta");
-
-        if (objClient.value.trim() == "") {
-            arrError.push("Client is required");
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:Arial;
         }
 
-        //Contacted By
-        const objContact = document.querySelectorAll('input[name="contact"]');
+        body{
+            background:#f5f5f5;
+            padding:30px;
+        }
 
-        let boolContact = false;
+        .dynamic-form{
+            background:white;
+            padding:20px;
+            margin-bottom:30px;
+            border-radius:10px;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
+        }
 
-        objContact.forEach(function (objRadio) {
+        h2{
+            margin-bottom:20px;
+        }
 
-            if (objRadio.checked) {
-                boolContact = true;
-            }
+        .row{
+            margin-bottom:15px;
+        }
+
+        label{
+            display:block;
+            margin-bottom:5px;
+            font-weight:bold;
+        }
+
+        input,
+        textarea,
+        select{
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:5px;
+        }
+
+        textarea{
+            resize:none;
+            height:80px;
+        }
+
+        button{
+            padding:10px 20px;
+            border:none;
+            background:#007bff;
+            color:white;
+            border-radius:5px;
+            cursor:pointer;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+
+
+    <!-- =========================================
+         FORM 1
+    ========================================== -->
+
+    <form class="dynamic-form">
+
+        <h2>Form 1</h2>
+
+
+
+        <div class="row">
+
+            <label for="name1">
+                Name
+            </label>
+
+            <input type="text"
+                   id="name1"
+                   required
+                   minlength="3"
+                   maxlength="20"
+                   data-nonumber="true">
+
+        </div>
+
+
+
+        <div class="row">
+
+            <label for="email1">
+                Email
+            </label>
+
+            <input type="text"
+                   id="email1"
+                   required
+                   data-type="email">
+
+        </div>
+
+
+
+        <div class="row">
+
+            <label for="phone1">
+                Phone Number
+            </label>
+
+            <input type="text"
+                   id="phone1"
+                   required
+                   data-type="phone">
+
+        </div>
+
+
+
+        <div class="row">
+
+            <label for="website1">
+                Website
+            </label>
+
+            <input type="text"
+                   id="website1"
+                   data-type="url">
+
+        </div>
+
+
+
+        <div class="row">
+
+            <label for="date1">
+                Date
+            </label>
+
+            <input type="text"
+                   id="date1"
+                   required
+                   data-type="date">
+
+        </div>
+
+
+
+        <div class="row">
+
+            <label for="time1">
+                Time
+            </label>
+
+            <input type="text"
+                   id="time1"
+                   required
+                   data-type="time">
+
+        </div>
+
+
+
+        <div class="row">
+
+            <label for="address1">
+                Address
+            </label>
+
+            <textarea id="address1"
+                      required
+                      minlength="10"
+                      maxlength="100"></textarea>
+
+        </div>
+
+
+
+        <button type="button"
+                class="submit-btn">
+
+            Submit Form 1
+
+        </button>
+
+    </form>
+
+
+
+
+
+    <!-- =========================================
+         FORM 2
+    ========================================== -->
+
+    <form class="dynamic-form">
+
+        <h2>Form 2</h2>
+
+
+
+        <div class="row">
+
+            <label for="username2">
+                Username
+            </label>
+
+            <input type="text"
+                   id="username2"
+                   required
+                   minlength="5"
+                   maxlength="15"
+                   data-nochar="true">
+
+        </div>
+
+
+
+        <div class="row">
+
+            <label for="email2">
+                Office Email
+            </label>
+
+            <input type="text"
+                   id="email2"
+                   required
+                   data-type="email">
+
+        </div>
+
+
+
+        <div class="row">
+
+            <label for="bio2">
+                Bio
+            </label>
+
+            <textarea id="bio2"
+                      required
+                      minlength="20"
+                      maxlength="150"></textarea>
+
+        </div>
+
+
+
+        <button type="button"
+                class="submit-btn">
+
+            Submit Form 2
+
+        </button>
+
+    </form>
+
+
+
+
+
+    <script>
+
+
+
+
+
+        /* =========================================
+           GET ALL SUBMIT BUTTONS
+        ========================================== */
+
+        const objButtons =
+        document.querySelectorAll(".submit-btn");
+
+
+
+
+
+        /* =========================================
+           LOOP BUTTONS
+        ========================================== */
+
+        objButtons.forEach(function(objBtn){
+
+            objBtn.addEventListener(
+
+                "click",
+
+                validateForm
+
+            );
 
         });
 
-        if (!boolContact) {
-            arrError.push("Contacted By is required");
-        }
 
 
 
 
-        // date
+        /* =========================================
+           MAIN VALIDATION
+        ========================================== */
 
-
-        const objDate = document.getElementById("datea");
-
-        if (objDate.value.trim() == "") {
-            arrError.push("Date is required");
-        }
+        function validateForm(event){
 
 
 
-        //case type
 
-        const objCaseType = document.getElementById("CaseType");
+            /* =========================================
+               CURRENT FORM
+            ========================================== */
 
-        if (objCaseType.value == "0" ||
-            objCaseType.value.trim() == "") {
-            arrError.push("Case Type is required");
-        }
+            let objForm =
 
-
-
-        //type
-
-        const objType = document.querySelectorAll('input[name="type"]');
-
-        let boolType = false;
-        let strTypeValue = "";
-
-        objType.forEach(function (objRadio) {
-            if (objRadio.checked) {
-
-                boolType = true;
-                strTypeValue = objRadio.value;
-            }
-        });
-
-        if (!boolType) {
-            arrError.push("Type is required");
-        }
+            event.target.closest("form");
 
 
 
-        //product
 
-        const objProduct = document.querySelectorAll(".select-b")[0];
+            /* =========================================
+               ALL FIELDS
+            ========================================== */
 
-        if (objProduct.value == "0" ||
-            objProduct.value.trim() == "") {
-            arrError.push("Product is required");
-        }
+            let objFields =
 
+            objForm.querySelectorAll(
 
+                "input, textarea, select"
 
-        //module
-
-        const objModule = document.querySelector(".select-c");
-
-        if (objModule.value == "0" ||
-            objModule.value.trim() == "") {
-
-            arrError.push("Module is required");
-        }
+            );
 
 
 
-        //attach note
 
-        const objAttach = document.getElementsByName("attach");
+            let arrError = [];
 
-        objAttach.forEach(function (objRadio) {
 
-            if (objRadio.checked &&
-                objRadio.value == "2") {
 
-                const objNote =
-                    document.querySelector("#attsol input");
 
-                if (objNote.value.trim() == "") {
+
+            /* =========================================
+               LOOP FIELDS
+            ========================================== */
+
+            objFields.forEach(function(objField){
+
+
+
+
+                /* =========================================
+                   LABEL
+                ========================================== */
+
+                let strLabel =
+
+                objForm
+                .querySelector(
+
+                    'label[for="' +
+                    objField.id +
+                    '"]'
+
+                )
+                .innerText;
+
+
+
+
+
+                /* =========================================
+                   VALUE
+                ========================================== */
+
+                let strValue =
+
+                objField.value.trim();
+
+
+
+
+
+                /* =========================================
+                   REQUIRED
+                ========================================== */
+
+                if(
+
+                    objField.required &&
+                    strValue == ""
+
+                ){
 
                     arrError.push(
-                        "Attach Note is required"
+
+                        strLabel +
+                        " is required"
+
                     );
+
+                    return;
+
                 }
 
-            }
 
-        });
 
 
 
-        //problem
+                /* =========================================
+                   MIN LENGTH
+                ========================================== */
 
-        const objProblem =
-            document.querySelectorAll("textarea")[0];
+                if(
 
-        if (objProblem.value.trim() == "") {
+                    objField.minLength > 0 &&
+                    strValue.length <
+                    objField.minLength
 
-            arrError.push("Problem is required");
-        }
+                ){
 
+                    arrError.push(
 
+                        strLabel +
+                        " minimum length is " +
+                        objField.minLength
 
-        //support siolution
+                    );
 
-        const objSupportSolution =
-            document.querySelectorAll("textarea")[1];
+                }
 
-        if (objSupportSolution.value.trim() == "") {
 
-            arrError.push("Support Solution is required");
-        }
 
 
 
-        // support by
+                /* =========================================
+                   MAX LENGTH
+                ========================================== */
 
-        const objSupportBy = document.getElementById("supportby");
+                if(
 
-        if (objSupportBy.value == "0" ||
-            objSupportBy.value.trim() == "") {
+                    objField.maxLength > 0 &&
+                    strValue.length >
+                    objField.maxLength
 
-            arrError.push("Support By is required");
-        }
+                ){
 
+                    arrError.push(
 
+                        strLabel +
+                        " maximum length is " +
+                        objField.maxLength
 
-        //assign to
+                    );
 
-        const objAssignTo = document.getElementById("assignTo");
+                }
 
-        if (objAssignTo.value == "0" ||
-            objAssignTo.value.trim() == "") {
 
-            arrError.push("Assign To is required");
-        }
 
 
 
-        //called by
+                /* =========================================
+                   EMAIL
+                ========================================== */
 
-        if (strTypeValue == "2") {
+                if(
 
-            const objCalledBy = document.querySelector(".select-e");
+                    objField.dataset.type ==
+                    "email"
 
-            if (objCalledBy.value == "0" ||
-                objCalledBy.value.trim() == "") {
+                ){
 
-                arrError.push("Called By is required");
-            }
+                    let regEmail =
 
-        }
+                    /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 
 
-        //session id
+                    if(
 
-        const objSession = document.querySelector(".ninei");
+                        strValue != "" &&
+                        !regEmail.test(strValue)
 
-        if (objSession.value.trim() == "") {
-            arrError.push("Session ID is required");
-        }
+                    ){
 
+                        arrError.push(
 
+                            "Invalid " +
+                            strLabel
 
-        //agent no
+                        );
 
-        if (strTypeValue == "1") {
+                    }
 
-            const objAgentNo = document.querySelectorAll(".select-d")[2];
+                }
 
-            if (objAgentNo.value == "0" ||
-                objAgentNo.value.trim() == "") {
 
-                arrError.push("Agent No is required");
-            }
 
-        }
 
 
+                /* =========================================
+                   PHONE
+                ========================================== */
 
-        //priority
+                if(
 
-        const objPriority = document.getElementById("Priorit");
+                    objField.dataset.type ==
+                    "phone"
 
-        if (objPriority.value == "0" ||
-            objPriority.value.trim() == "") {
-            arrError.push("Priority is required");
-        }
+                ){
 
+                    let regPhone =
+                    /^[0-9]{10}$/;
 
 
-        //status
 
-        const objStatus = document.getElementById("Statusa");
+                    if(
 
-        if (objStatus.value == "0" ||
-            objStatus.value.trim() == "") {
+                        strValue != "" &&
+                        !regPhone.test(strValue)
 
-            arrError.push("Status is required");
-        }
+                    ){
 
+                        arrError.push(
 
+                            "Invalid " +
+                            strLabel
 
-        //followup 
+                        );
 
-        const objFollow = document.getElementById("followup-a");
+                    }
 
-        if (objFollow.value == "Yes") {
+                }
 
-            const objFollowDate = document.querySelectorAll(".date")[1];
 
-            if (objFollowDate.value.trim() == "") {
 
-                arrError.push("Next Followup Date is required");
-            }
 
 
+                /* =========================================
+                   URL
+                ========================================== */
 
-            const objFollowBy = document.querySelectorAll(".select-e")[1];
+                if(
 
-            if (objFollowBy.value == "0" ||
-                objFollowBy.value.trim() == "") {
+                    objField.dataset.type ==
+                    "url"
 
-                arrError.push("Next Followup By is required");
-            }
+                ){
 
-        }
+                    let regUrl =
 
+                    /^(https?:\/\/)?([\w\-])+\.{1}[a-zA-Z]{2,}(\/.*)?$/;
 
 
-        //invoice no
 
-        const objBilled = document.getElementById("Billed");
+                    if(
 
-        if (objBilled.value == "Yes") {
+                        strValue != "" &&
+                        !regUrl.test(strValue)
 
-            const objInvoice = document.querySelectorAll(".bill")[1];
+                    ){
 
-            if (objInvoice.value.trim() == "") {
+                        arrError.push(
 
-                arrError.push("Invoice No is required");
-            }
+                            "Invalid " +
+                            strLabel
 
-        }
+                        );
 
+                    }
 
-        //start call 
+                }
 
-        const objStartCall = document.querySelectorAll(".time")[1];
 
-        if (objStartCall.value.trim() == "") {
 
-            arrError.push("Start Call is required");
-        }
 
 
+                /* =========================================
+                   NO NUMBER
+                ========================================== */
 
-        //end call
+                if(
 
-        const objEndCall =
-            document.querySelectorAll(".time")[2];
+                    objField.dataset.nonumber ==
+                    "true"
 
-        if (objEndCall.value.trim() == "") {
+                ){
 
-            arrError.push("End Call is required");
-        }
+                    let regNumber = /\d/;
 
 
 
-        //promised date
+                    if(
 
-        const objPromiseDate = document.querySelectorAll(".date")[2];
+                        regNumber.test(strValue)
 
-        if (objPromiseDate.value.trim() == "") {
+                    ){
 
-            arrError.push("Promised Date is required");
-        }
+                        arrError.push(
 
+                            strLabel +
+                            " should not contain numbers"
 
+                        );
 
-        //show aletr
-        if (arrError.length > 0) {
+                    }
 
-            let strMsg = "All required fields not filled\n";
+                }
 
-            arrError.forEach(function (strError) {
-                strMsg += strError + "\n";
+
+
+
+
+                /* =========================================
+                   NO SPECIAL CHARACTER
+                ========================================== */
+
+                if(
+
+                    objField.dataset.nochar ==
+                    "true"
+
+                ){
+
+                    let regChar =
+                    /[^a-zA-Z0-9]/;
+
+
+
+                    if(
+
+                        regChar.test(strValue)
+
+                    ){
+
+                        arrError.push(
+
+                            strLabel +
+                            " should not contain special characters"
+
+                        );
+
+                    }
+
+                }
+
+
+
+
+
+                /* =========================================
+                   DATE
+                ========================================== */
+
+                if(
+
+                    objField.dataset.type ==
+                    "date"
+
+                ){
+
+                    let regDate =
+                    /^\d{2}-\d{2}-\d{4}$/;
+
+
+
+                    if(
+
+                        strValue != "" &&
+                        !regDate.test(strValue)
+
+                    ){
+
+                        arrError.push(
+
+                            "Invalid " +
+                            strLabel
+
+                        );
+
+                    }
+
+                }
+
+
+
+
+
+                /* =========================================
+                   TIME
+                ========================================== */
+
+                if(
+
+                    objField.dataset.type ==
+                    "time"
+
+                ){
+
+                    let regTime =
+                    /^(0[1-9]|1[0-2]):([0-5][0-9])$/;
+
+
+
+                    if(
+
+                        strValue != "" &&
+                        !regTime.test(strValue)
+
+                    ){
+
+                        arrError.push(
+
+                            "Invalid " +
+                            strLabel
+
+                        );
+
+                    }
+
+                }
+
             });
 
-            alert(strMsg);
-
-            return;
-        }
-
-
-        alert("Submit successful!");
-
-    }
 
 
 
-    //Use for reset button 
 
-    if (strButtonText == "Reset") {
+            /* =========================================
+               SHOW ERRORS
+            ========================================== */
 
-        document.querySelectorAll("input").forEach(function (objInput) {
+            if(arrError.length > 0){
 
-            if (objInput.type == "text" ||
-                objInput.type == "file") {
-                objInput.value = "";
+                alert(
+
+                    arrError.join("\n")
+
+                );
+
             }
 
-            if (objInput.type == "radio" ||
-                objInput.type == "checkbox") {
+            else{
 
-                objInput.checked = false;
+                alert(
+
+                    "Form Submitted Successfully"
+
+                );
+
             }
 
-        });
-
-
-
-
-        document.querySelectorAll("select").forEach(function (objSelect) {
-
-            objSelect.value = "0";
-        });
-
-
-
-
-        document.querySelectorAll("textarea").forEach(function (objTextarea) {
-            objTextarea.value = "";
-        });
-
-    }
-
-}
-
-
-
-//date check
-function validateDate(input) {
-
-    let value = input.value.replace(/\D/g, "");
-
-    value = value.slice(0, 8);
-
-    if (value.length > 2 && value.length <= 4) {
-        value = value.slice(0, 2) + "-" + value.slice(2);
-    }
-    else if (value.length > 4) {
-        value = value.slice(0, 2) + "-" + value.slice(2, 4) + "-" + value.slice(4, 8);
-    }
-
-    input.value = value;
-
-    if (value.length == 10) {
-        let arrDate = value.split("-");
-        let intDate = Number(arrDate[0]);
-        let intMonth = Number(arrDate[1]);
-        let intYear = Number(arrDate[2]);
-
-        if (intDate < 1 ||
-            intDate > 31) {
-
-            alert(" Enter date between 1 to 31");
-            input.value = "";
-            return;
-        }
-        if (intMonth < 1 || intMonth > 12) {
-
-            alert("Month must be between 1 to 12");
-
-
-            input.value = "";
-            return;
         }
 
+    </script>
 
-        if (arrDate[2].length != 4) {
+</body>
 
-            alert("Year must be 4 digits");
-
-            input.value = "";
-            return;
-        }
-
-    }
-
-}
-
-
-//used for time check
-function validateTime(input) {
-
-    let value = input.value.replace(/\D/g, "");
-    value = value.slice(0, 4);
-
-    if (value.length > 2) {
-        value = value.slice(0, 2) + ":" + value.slice(2, 4);
-    }
-
-    input.value = value;
-
-    if (value.length == 5) {
-
-        let arrTime = value.split(":");
-        let intHour = Number(arrTime[0]);
-
-        let intMinute = Number(arrTime[1]);
-
-
-        if (intHour < 1 ||
-            intHour > 12) {
-            alert("Hour between 1 to 12");
-            input.value = "";
-            return;
-        }
-        if (intMinute < 0 ||
-            intMinute > 59) {
-            alert("Minute between 0 to 59");
-            input.value = "";
-            return;
-        }
-
-    }
-
-    calculateDuration();
-
-}
-
-function calculateDuration() {
-
-    const objStartTime = document.querySelectorAll(".time")[1];
-    const objStartAMPM = document.querySelectorAll(".select-g")[2];
-    const objEndTime = document.querySelectorAll(".time")[2];
-    const objEndAMPM = document.querySelectorAll(".select-g")[3];
-
-
-    let arrStart = objStartTime.value.split(":");
-    let intStartHour = Number(arrStart[0]);
-    let intStartMinute = Number(arrStart[1]);
-
-
-
-    let arrEnd = objEndTime.value.split(":");
-    let intEndHour = Number(arrEnd[0]);
-    let intEndMinute = Number(arrEnd[1]);
-
-
-
-    if (objStartAMPM.value == "PM" && intStartHour != 12) {
-        intStartHour = intStartHour + 12;
-    }
-
-    if (objStartAMPM.value == "AM" && intStartHour == 12) {
-        intStartHour = 0;
-    }
-    if (objEndAMPM.value == "PM" && intEndHour != 12) {
-
-        intEndHour = intEndHour + 12;
-    }
-    if (objEndAMPM.value == "AM" && intEndHour == 12) {
-        intEndHour = 0;
-    }
-
-
-    let intStartTotal = (intStartHour * 60) + intStartMinute;
-    let intEndTotal = (intEndHour *60) + intEndMinute;
-
-    let intDura = intEndTotal - intStartTotal;
-
-    let intHours = Math.floor(intDura/60);
-    let intMinutes = intDura % 60;
-
-
-
- 
-
-    document.querySelectorAll(".size-a")[0].value = intHours;
-
-    document.querySelectorAll(".size-a")[1].value = intMinutes;
-
-}
+</html>
