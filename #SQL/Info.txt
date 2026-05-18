@@ -1,1 +1,125 @@
-  
+
+//    VALID EMAIL
+
+
+let objValidEmail = document.getElementsByClassName("valid-email");
+for (let intLoopCount = 0; intLoopCount < objValidEmail.length; intLoopCount++) {
+
+    objValidEmail[intLoopCount].addEventListener("blur", function () {
+        let strValue = this.value.trim();
+        let strLabel = document.querySelector('label[for="' + this.name + '"]').innerText;
+        let regEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (strValue != "" && !regEmail.test(strValue)) {
+            alert("Invalid " + strLabel);
+        }
+    }
+    );
+}
+
+//    VALID PHONE NUMBER
+
+
+let objPhone = document.getElementsByClassName("valid-PhoneNumb");
+for (let intLoopCount = 0; intLoopCount < objPhone.length; intLoopCount++) {
+    objPhone[intLoopCount].addEventListener("blur", function () {
+        let strValue = this.value.trim();
+        let strLabel = document.querySelector('label[for="' + this.name + '"]').innerText;
+        let regPhone = /^[0-9]{10}$/;
+        if (strValue != "" && !regPhone.test(strValue)) {
+            alert("Invalid " + strLabel);
+        }
+    });
+}
+
+
+
+
+
+//    VALID URL
+let objUrl = document.getElementsByClassName("valid-url");
+for (let intLoopCount = 0; intLoopCount < objUrl.length; intLoopCount++) {
+
+    objUrl[intLoopCount].addEventListener("blur", function () {
+        let strValue = this.value.trim();
+        let strLabel = document.querySelector('label[for="' + this.name + '"]'
+        ).innerText;
+        let regUrl = /^(https?:\/\/)?([\w\-])+\.{1}[a-zA-Z]{2,}(\/.*)?$/;
+
+        if (trValue != "" && !regUrl.test(strValue)) {
+            alert("Invalid " + strLabel);
+        }
+
+    }
+
+    );
+
+}
+
+//    VALID MIN LENGTH
+
+let objMinLength = document.querySelectorAll(
+    '[class*="valid-min-"]');
+for (let intLoopCount = 0; intLoopCount < objMinLength.length; intLoopCount++
+) {
+
+    objMinLength[intLoopCount].addEventListener("blur",
+        function () {
+
+            let strValue = this.value.trim();
+            let strLabel = document.querySelector(
+                'label[for="' +
+                this.name +
+                '"]').innerText;
+            this.classList.forEach(function (strClass) {
+                if (strClass.startsWith("valid-min-")) {
+
+                    let intMin = Number(strClass.split("-")[2]);
+                    if (strValue.length < intMin) {
+                        alert(strLabel + " minimum length is " + intMin);
+
+                    }
+                }
+            });
+
+        }
+
+    );
+
+}
+
+
+
+
+
+
+//    VALID MAX LENGTH
+
+
+let objMaxLength = document.querySelectorAll('[class*="valid-max-"]');
+
+
+
+for (let intLoopCount = 0; intLoopCount < objMaxLength.length; intLoopCount++) {
+    objMaxLength[intLoopCount].addEventListener("blur", function () {
+
+        let strValue = this.value.trim();
+        let strLabel = document.querySelector('label[for="' + this.name + '"]').innerText;
+        this.classList.forEach(function (strClass) {
+            if (strClass.startsWith("valid-max-")) {
+
+                let intMax = Number(strClass.split("-")[2]);
+
+                if (strValue.length > intMax) {
+
+                    alert(strLabel + " maximum length is " + intMax);
+                }
+
+            }
+
+        });
+
+    }
+
+    );
+
+}  
