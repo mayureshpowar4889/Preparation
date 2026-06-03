@@ -1,294 +1,609 @@
- <?php
-session_start();
+part1
 
-// Initialize dynamic system date tracks
-if (!isset($_SESSION['year']))  { $_SESSION['year']  = (int)date('Y'); }
-if (!isset($_SESSION['month'])) { $_SESSION['month'] = (int)date('n'); }
-if (!isset($_SESSION['selected_day'])) { $_SESSION['selected_day'] = null; }
+<?php
 
-$alertMessage = "";
-if (isset($_POST['action']) && $_POST['action'] === 'help') {
-    $alertMessage = "<script>alert('this is calendar');</script>";
-}
+date_default_timezone_set(
+    "Asia/Kolkata"
+);
 
-if (isset($_POST['select_day'])) {
-    $_SESSION['selected_day'] = (int)$_POST['select_day'];
-}
+?>
 
-if (isset($_POST['action'])) {
-    switch ($_POST['action']) {
-        case 'prev_year':   $_SESSION['year']--; break;
-        case 'next_year':   $_SESSION['year']++; break;
-        case 'prev_month':
-            $_SESSION['month']--;
-            if ($_SESSION['month'] < 1) { $_SESSION['month'] = 12; $_SESSION['year']--; }
-            break;
-        case 'next_month':
-            $_SESSION['month']++;
-            if ($_SESSION['month'] > 12) { $_SESSION['month'] = 1; $_SESSION['year']++; }
-            break;
-        case 'today':
-            $_SESSION['year']  = (int)date('Y');
-            $_SESSION['month'] = (int)date('n');
-            $_SESSION['selected_day'] = (int)date('j');
-            break;
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<title>
+Meeting Dashboard
+</title>
+
+<link
+rel="stylesheet"
+href="style.css">
+
+</head>
+
+<body>
+
+<table class="meeting-table">
+
+<tr>
+
+<th class="time-header">
+Time
+</th>
+
+<?php
+
+$today = time();
+
+$currentDayNumber =
+date(
+    "w",
+    $today
+);
+
+$sunday =
+strtotime(
+    "-{$currentDayNumber} day",
+    $today
+);
+
+for(
+    $day = 0;
+    $day < 7;
+    $day++
+)
+{
+    $date =
+    strtotime(
+        "+{$day} day",
+        $sunday
+    );
+
+    $class = "";
+
+    if(
+        date(
+            "Y-m-d",
+            $date
+        )
+        ==
+        date(
+            "Y-m-d"
+        )
+    )
+    {
+        $class =
+        "today-column";
     }
+
+    echo "
+    <th class='{$class}'>
+
+    ".
+    date(
+        "D",
+        $date
+    )
+    ."
+    ".
+    date(
+        "n/j",
+        $date
+    )
+    ."
+
+    </th>
+    ";
 }
 
-$currentYear  = $_SESSION['year'];
-$currentMonth = $_SESSION['month'];
-$selectedDay  = $_SESSION['selected_day'];
+?>
 
-$monthNames = [
-    1 => "January", 2 => "February", 3 => "March", 4 => "April", 
-    5 => "May", 6 => "June", 7 => "July", 8 => "August", 
-    9 => "September", 10 => "October", 11 => "November", 12 => "December"
+</tr>
+
+<?php
+
+for(
+    $hour = 0;
+    $hour < 24;
+    $hour++
+)
+{
+    echo "<tr>";
+
+    echo "
+    <td
+    rowspan='2'
+    class='time-cell'
+    >
+    ".
+    date(
+        "gA",
+        mktime(
+            $hour,
+            0
+        )
+    )
+    ."
+    </td>
+    ";
+
+    for(
+        $day = 0;
+        $day < 7;
+        $day++
+    )
+    {
+        $class = "slot";
+
+        $date =
+        strtotime(
+            "+{$day} day",
+            $sunday
+        );
+
+        if(
+            date(
+                "Y-m-d",
+                $date
+            )
+            ==
+            date(
+                "Y-m-d"
+            )
+        )
+        {
+            $class .=
+            " today-column";
+        }
+
+        echo "
+        <td
+        class='{$class}'
+        data-day='{$day}'
+        data-slot='"
+        .
+        (
+            $hour * 2
+        )
+        .
+        "'>
+        </td>
+        ";
+    }
+
+    echo "</tr>";
+
+    echo "<tr>";
+
+    for(
+        $day = 0;
+        $day < 7;
+        $day++
+    )
+    {
+        $class = "slot";
+
+        $date =
+        strtotime(
+            "+{$day} day",
+            $sunday
+        );
+
+        if(
+            date(
+                "Y-m-d",
+                $date
+            )
+            ==
+            date(
+                "Y-m-d"
+            )
+        )
+        {
+            $class .=
+            " today-column";
+        }
+
+        echo "
+        <td
+        class='{$class}'
+        data-day='{$day}'
+        data-slot='"
+        .
+        (
+            $hour * 2 + 1
+        )
+        .
+        "'>
+        </td>
+        ";
+    }
+
+    echo "</tr>";
+}
+
+?>
+
+</table>
+
+<script src="script.js">
+</script>
+
+</body>
+
+</html>
+
+csshhhhhhhhhhhhhhhhhhhh
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial;
+    padding:20px;
+}
+
+.meeting-table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.meeting-table th,
+.meeting-table td{
+    border:1px solid black;
+}
+
+.time-header{
+    width:80px;
+}
+
+.time-cell{
+    width:80px;
+    text-align:center;
+    font-weight:bold;
+}
+
+.slot{
+    height:25px;
+}
+
+.today-column{
+    background:#e5e5e5;
+}
+
+part 2 
+add css
+/* =========================================
+   PAST SLOT
+========================================= */
+
+.past-slot{
+    background:#dcdcdc !important;
+    cursor:not-allowed;
+}
+
+/* =========================================
+   CURRENT TIME RED LINE
+========================================= */
+
+.current-time-slot{
+    position:relative;
+}
+
+.current-time-slot::after{
+    content:"";
+
+    position:absolute;
+
+    top:0;
+    left:0;
+    right:0;
+
+    height:3px;
+
+    background:red;
+
+    z-index:100;
+}
+
+script.js 
+/* =========================================
+   CURRENT DATE TIME
+========================================= */
+
+const now =
+new Date();
+
+/*
+0 = Sunday
+1 = Monday
+...
+6 = Saturday
+*/
+
+const todayDay =
+now.getDay();
+
+/* =========================================
+   CURRENT SLOT
+========================================= */
+
+let currentSlot =
+(
+    now.getHours()
+    *
+    2
+);
+
+if(
+    now.getMinutes()
+    >=
+    30
+)
+{
+    currentSlot++;
+}
+add below
+/* =========================================
+   MARK PAST CELLS
+========================================= */
+
+document
+.querySelectorAll(".slot")
+.forEach(function(cell)
+{
+    let day =
+    parseInt(
+        cell.dataset.day
+    );
+
+    let slot =
+    parseInt(
+        cell.dataset.slot
+    );
+
+    if(
+        day < todayDay
+    )
+    {
+        cell.classList.add(
+            "past-slot"
+        );
+    }
+
+    if(
+        day == todayDay
+        &&
+        slot < currentSlot
+    )
+    {
+        cell.classList.add(
+            "past-slot"
+        );
+    }
+});
+add below 
+/* =========================================
+   RED LINE
+========================================= */
+
+document
+.querySelectorAll(".slot")
+.forEach(function(cell)
+{
+    let day =
+    parseInt(
+        cell.dataset.day
+    );
+
+    let slot =
+    parseInt(
+        cell.dataset.slot
+    );
+
+    if(
+        day == todayDay
+        &&
+        slot == currentSlot
+    )
+    {
+        cell.classList.add(
+            "current-time-slot"
+        );
+    }
+});
+
+part 3
+/* =========================================
+   STATIC MEETINGS
+========================================= */
+
+let meetings =
+[
+    {
+        id:1,
+        day:3,
+        start:2,
+        end:6,
+        title:"Meeting 1"
+    },
+
+    {
+        id:2,
+        day:2,
+        start:8,
+        end:11,
+        title:"Code Review"
+    },
+
+    {
+        id:3,
+        day:2,
+        start:13,
+        end:16,
+        title:"Meeting Code 1"
+    }
 ];
 
-// Footer string calculations engine logic
-$footerText = "Select date";
-if ($selectedDay !== null) {
-    $firstDayTimestamp = strtotime("$currentYear-$currentMonth-01");
-    $totalDaysInMonth  = (int)date('t', $firstDayTimestamp);
-    
-    if ($selectedDay > $totalDaysInMonth) {
-        $selectedDay = $totalDaysInMonth;
-        $_SESSION['selected_day'] = $totalDaysInMonth;
+add below meeting array 
+/* =========================================
+   SLOT TO TIME
+========================================= */
+
+function slotToTime(slot)
+{
+    let hour =
+    Math.floor(
+        slot / 2
+    );
+
+    let minute =
+    (slot % 2)
+    *
+    30;
+
+    let ampm =
+    hour >= 12
+    ?
+    "PM"
+    :
+    "AM";
+
+    let displayHour =
+    hour % 12;
+
+    if(displayHour == 0)
+    {
+        displayHour = 12;
     }
 
-    $timeString = strtotime("$currentYear-$currentMonth-$selectedDay");
-    $shortMonth = date('M', $timeString);
-    $shortDayName = strtolower(date('D', $timeString));
-    $footerText = "{$shortMonth} {$shortDayName} {$selectedDay}";
+    return (
+        displayHour
+        +
+        ":"
+        +
+        minute
+        .toString()
+        .padStart(
+            2,
+            "0"
+        )
+        +
+        ampm
+    );
 }
+add below 
+function renderMeetings()
+{
+    meetings.forEach(
+    function(meeting)
+    {
+        let startCell =
+        document.querySelector(
+        ".slot[data-day='"
+        +
+        meeting.day
+        +
+        "'][data-slot='"
+        +
+        meeting.start
+        +
+        "']"
+        );
 
-echo "<!DOCTYPE html>\n";
-echo "<html lang='en'>\n";
-echo "<head>\n";
-echo "    <title> Calendar</title>\n";
-echo "    <link rel='stylesheet' href='style.css'>\n";
-echo "</head>\n";
-echo "<body>\n";
-
-if (!empty($alertMessage)) { echo $alertMessage; }
-
-echo "<div class='calendars-wrapper'>\n";
-
-if (!(isset($_POST['action']) && $_POST['action'] === "close_calendar")) {
-    echo "    <div class='calendar-container'>\n";
-    echo "        <form method='POST' action='index.php' style='margin:0; padding:0;'>\n";
-    echo "            <table class='calendar-table'>\n";
-    
-    // Row 1
-    echo "                <tr class='row-header'>\n";
-    echo "                    <td class='btn-help'><button type='submit' name='action' value='help' data-info='Help button'>?</button></td>\n";
-    echo "                    <td colspan='6' class='current-month-year'>{$monthNames[$currentMonth]} , {$currentYear}</td>\n";
-    echo "                    <td class='btn-close'><button type='submit' name='action' value='close_calendar' data-info='Close calendar button'>✕</button></td>\n";
-    echo "                </tr>\n";
-    
-    // Row 2
-    echo "                <tr class='row-navigation'>\n";
-    echo "                    <td class='nav-btn'><button type='submit' name='action' value='prev_year' data-info='Previous year button'>&lt;&lt;</button></td>\n";
-    echo "                    <td class='nav-btn'><button type='submit' name='action' value='prev_month' data-info='Previous month button'>&lt;</button></td>\n";
-    echo "                    <td colspan='4' class='nav-btn btn-today'><button type='submit' name='action' value='today' data-info='Today button'>Today</button></td>\n";
-    echo "                    <td class='nav-btn'><button type='submit' name='action' value='next_month' data-info='Next month button'>&gt;</button></td>\n";
-    echo "                    <td class='nav-btn'><button type='submit' name='action' value='next_year' data-info='Next year button'>&gt;&gt;</button></td>\n";
-    echo "                </tr>\n";
-    
-    // Row 3
-    echo "                <tr class='row-days-header'>\n";
-    echo "                    <th class='wk-header'>WK</th>\n";
-    echo "                    <th class='sun-header'>Sun</th>\n";
-    echo "                    <th>Mon</th>\n";
-    echo "                    <th>Tue</th>\n";
-    echo "                    <th>Wed</th>\n";
-    echo "                    <th>Thu</th>\n";
-    echo "                    <th>Fri</th>\n";
-    echo "                    <th class='sat-header'>Sat</th>\n";
-    echo "                </tr>\n";
-    
-    $firstDayTimestamp = strtotime("$currentYear-$currentMonth-01");
-    $firstDayIndex     = (int)date('w', $firstDayTimestamp); 
-    $totalDays         = (int)date('t', $firstDayTimestamp); 
-    
-    $dateCounter = 1;
-    $liveYear    = (int)date('Y');
-    $liveMonth   = (int)date('n');
-    $liveDay     = (int)date('j');
-
-    for ($rowIdx = 0; $rowIdx < 6; $rowIdx++) {
-        if ($dateCounter > $totalDays) { break; }
-        
-        echo "  <tr>\n";
-        
-        
-        // Calculate week number based strictly on the Sunday date of this row
-        if ($rowIdx === 0) {
-            // In the first row, find the actual date of the first Sunday (even if it's in the last month)
-            $rowSundayTimestamp = strtotime("$currentYear-$currentMonth-01 -" . $firstDayIndex . " days");
-        } else {
-            // For later rows, calculate directly from the current dateCounter day
-            $rowSundayTimestamp = strtotime("$currentYear-$currentMonth-$dateCounter");
+        if(
+            !startCell
+        )
+        {
+            return;
         }
-        
-        // Get standard calendar week number cleanly
-        $weekNumber = (int)date('W', $rowSundayTimestamp);
-        
-        // Format week output with a leading zero if less than 10
-        $displayWeek = ($weekNumber < 10) ? "0" . $weekNumber : $weekNumber;
-        
-        echo "                    <td class='wk-cell'>{$displayWeek}</td>\n";
-        
-        for ($colIdx = 0; $colIdx < 7; $colIdx++) {
-            if (($rowIdx === 0 && $colIdx < $firstDayIndex) || $dateCounter > $totalDays) {
-                echo "                    <td class='empty-cell'></td>\n";
-            } else {
-                $classes = ['day-cell'];
-                if ($colIdx === 0) $classes[] = 'sun-cell';
-                if ($colIdx === 6) $classes[] = 'sat-cell';
-                
-                if ($currentYear === $liveYear && $currentMonth === $liveMonth && $dateCounter === $liveDay) {
-                    $classes[] = 'today-bold';
-                }
-                if ($selectedDay === $dateCounter) {
-                    $classes[] = 'selected-blue';
-                }
-                
-                $classStr = implode(' ', $classes);
-                
-                echo "                    <td class='{$classStr}'>\n";
-                echo "                        <button type='submit' name='select_day' value='{$dateCounter}' data-info='Day {$dateCounter} cell'>{$dateCounter}</button>\n";
-                echo "                    </td>\n";
-                
-                $dateCounter++;
-            }
-        }
-        echo "                </tr>\n";
-    }
-    
-    echo "                <tr class='row-footer'>\n";
-    echo "                    <td colspan='8' class='calendar-footer'>{$footerText}</td>\n";
-    echo "                </tr>\n";
-    echo "            </table>\n";
-    echo "        </form>\n";
-    echo "    </div>\n";
+
+        let box =
+        document.createElement(
+            "div"
+        );
+
+        box.className =
+        "meeting-box";
+
+        let totalSlots =
+        meeting.end
+        -
+        meeting.start
+        +
+        1;
+
+        box.style.height =
+        (
+            totalSlots
+            *
+            25
+            -
+            4
+        )
+        +
+        "px";
+
+        box.innerHTML =
+        "<b>"
+        +
+        slotToTime(
+            meeting.start
+        )
+        +
+        " - "
+        +
+        slotToTime(
+            meeting.end
+        )
+        +
+        "</b>"
+        +
+        "<br>"
+        +
+        meeting.title;
+
+        startCell.appendChild(
+            box
+        );
+    });
 }
 
-echo "</div>\n";
-echo "</body>\n";
-echo "</html>\n";
-?>
-=========================================
-/* Container Flex Layout wrappers */
-.calendars-wrapper {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 40px;
-    padding: 30px;
-    font-family: Arial, sans-serif;
-    justify-content: center;
+at bottom of js file add
+renderMeetings();
+
+add css 
+/* =========================================
+   MEETING BOX
+========================================= */
+
+.slot{
+    position:relative;
 }
 
-/* Clear form button border resets to fit grid exactly */
-.calendar-table button {
-    background: none;
-    border: none;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: inherit;
-    color: inherit;
-    font-weight: inherit;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+.meeting-box{
+    position:absolute;
 
-.calendar-table {
-    border-collapse: collapse;
-    width: 340px;
-    text-align: center;
-    border: 2px solid #000000;
-    position: relative; /* Visual anchor hook for dynamic footer overlay */
-}
+    top:0;
+    left:2px;
+    right:2px;
 
-.calendar-table td, .calendar-table th {
-    border: 1px solid #000000;
-    width: 42px;
-    height: 38px;
-    font-size: 13px;
-    padding: 0;
-}
+    background:#b04eb3;
 
-/* Row 1 & Row 2 Global Hover Rule: Sky Blue */
-.row-header button:hover,
-.row-navigation button:hover,
-.day-cell button:hover {
-    background-color: #87CEEB !important;
-}
+    color:black;
 
-/* Row 3 Days Headers Styling Rules */
-.row-days-header th {
-    font-weight: bold;
-    background-color: #ffffff;
-}
+    border:1px solid #000;
 
-/* Weekend red text font rules matching original image schema mockup */
-.sun-header, .sun-cell, .sun-cell button {
-    color: #ff0000 !important;
-}
-.sat-header, .sat-cell, .sat-cell button {
-    color: #ff0000 !important;
-}
+    z-index:100;
 
-/* Week system elements indexing */
-.wk-header, .wk-cell {
-    font-weight: bold;
-    background-color: #ffffff;
-}
+    padding:4px;
 
-/* State Variable styling parameters matching assignment specs */
-.today-bold, .today-bold button {
-    font-weight: bold !important;
-}
+    font-size:11px;
 
-.selected-blue {
-    background-color: #0000FF !important;
-}
-.selected-blue button {
-    color: #ffffff !important;
-}
-
-/* Status Data Bar Row Styles */
-.calendar-footer {
-    text-align: center;
-    font-weight: bold;
-    height: 32px;
-    background-color: #ffffff;
-    position: relative;
-}
-
- 
-
-/* Hidden pseudo overlay template covering default text on element hover */
-.calendar-table tr button[data-info]:hover::after {
-    content: attr(data-info);
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 32px; 
-    background-color: #ffffff;
-    color: #000000;
-    font-weight: bold;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    border-top: 1px solid #000000;
-    box-sizing: border-box;
+    overflow:hidden;
 }
