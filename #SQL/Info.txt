@@ -1,424 +1,4 @@
-part1
-
-<?php
-
-date_default_timezone_set(
-    "Asia/Kolkata"
-);
-
-?>
-
-<!DOCTYPE html>
-
-<html>
-
-<head>
-
-<title>
-Meeting Dashboard
-</title>
-
-<link
-rel="stylesheet"
-href="style.css">
-
-</head>
-
-<body>
-
-<table class="meeting-table">
-
-<tr>
-
-<th class="time-header">
-Time
-</th>
-
-<?php
-
-$today = time();
-
-$currentDayNumber =
-date(
-    "w",
-    $today
-);
-
-$sunday =
-strtotime(
-    "-{$currentDayNumber} day",
-    $today
-);
-
-for(
-    $day = 0;
-    $day < 7;
-    $day++
-)
-{
-    $date =
-    strtotime(
-        "+{$day} day",
-        $sunday
-    );
-
-    $class = "";
-
-    if(
-        date(
-            "Y-m-d",
-            $date
-        )
-        ==
-        date(
-            "Y-m-d"
-        )
-    )
-    {
-        $class =
-        "today-column";
-    }
-
-    echo "
-    <th class='{$class}'>
-
-    ".
-    date(
-        "D",
-        $date
-    )
-    ."
-    ".
-    date(
-        "n/j",
-        $date
-    )
-    ."
-
-    </th>
-    ";
-}
-
-?>
-
-</tr>
-
-<?php
-
-for(
-    $hour = 0;
-    $hour < 24;
-    $hour++
-)
-{
-    echo "<tr>";
-
-    echo "
-    <td
-    rowspan='2'
-    class='time-cell'
-    >
-    ".
-    date(
-        "gA",
-        mktime(
-            $hour,
-            0
-        )
-    )
-    ."
-    </td>
-    ";
-
-    for(
-        $day = 0;
-        $day < 7;
-        $day++
-    )
-    {
-        $class = "slot";
-
-        $date =
-        strtotime(
-            "+{$day} day",
-            $sunday
-        );
-
-        if(
-            date(
-                "Y-m-d",
-                $date
-            )
-            ==
-            date(
-                "Y-m-d"
-            )
-        )
-        {
-            $class .=
-            " today-column";
-        }
-
-        echo "
-        <td
-        class='{$class}'
-        data-day='{$day}'
-        data-slot='"
-        .
-        (
-            $hour * 2
-        )
-        .
-        "'>
-        </td>
-        ";
-    }
-
-    echo "</tr>";
-
-    echo "<tr>";
-
-    for(
-        $day = 0;
-        $day < 7;
-        $day++
-    )
-    {
-        $class = "slot";
-
-        $date =
-        strtotime(
-            "+{$day} day",
-            $sunday
-        );
-
-        if(
-            date(
-                "Y-m-d",
-                $date
-            )
-            ==
-            date(
-                "Y-m-d"
-            )
-        )
-        {
-            $class .=
-            " today-column";
-        }
-
-        echo "
-        <td
-        class='{$class}'
-        data-day='{$day}'
-        data-slot='"
-        .
-        (
-            $hour * 2 + 1
-        )
-        .
-        "'>
-        </td>
-        ";
-    }
-
-    echo "</tr>";
-}
-
-?>
-
-</table>
-
-<script src="script.js">
-</script>
-
-</body>
-
-</html>
-
-csshhhhhhhhhhhhhhhhhhhh
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
-body{
-    font-family:Arial;
-    padding:20px;
-}
-
-.meeting-table{
-    width:100%;
-    border-collapse:collapse;
-}
-
-.meeting-table th,
-.meeting-table td{
-    border:1px solid black;
-}
-
-.time-header{
-    width:80px;
-}
-
-.time-cell{
-    width:80px;
-    text-align:center;
-    font-weight:bold;
-}
-
-.slot{
-    height:25px;
-}
-
-.today-column{
-    background:#e5e5e5;
-}
-
-part 2 
-add css
-/* =========================================
-   PAST SLOT
-========================================= */
-
-.past-slot{
-    background:#dcdcdc !important;
-    cursor:not-allowed;
-}
-
-/* =========================================
-   CURRENT TIME RED LINE
-========================================= */
-
-.current-time-slot{
-    position:relative;
-}
-
-.current-time-slot::after{
-    content:"";
-
-    position:absolute;
-
-    top:0;
-    left:0;
-    right:0;
-
-    height:3px;
-
-    background:red;
-
-    z-index:100;
-}
-
-script.js 
-/* =========================================
-   CURRENT DATE TIME
-========================================= */
-
-const now =
-new Date();
-
-/*
-0 = Sunday
-1 = Monday
-...
-6 = Saturday
-*/
-
-const todayDay =
-now.getDay();
-
-/* =========================================
-   CURRENT SLOT
-========================================= */
-
-let currentSlot =
-(
-    now.getHours()
-    *
-    2
-);
-
-if(
-    now.getMinutes()
-    >=
-    30
-)
-{
-    currentSlot++;
-}
-add below
-/* =========================================
-   MARK PAST CELLS
-========================================= */
-
-document
-.querySelectorAll(".slot")
-.forEach(function(cell)
-{
-    let day =
-    parseInt(
-        cell.dataset.day
-    );
-
-    let slot =
-    parseInt(
-        cell.dataset.slot
-    );
-
-    if(
-        day < todayDay
-    )
-    {
-        cell.classList.add(
-            "past-slot"
-        );
-    }
-
-    if(
-        day == todayDay
-        &&
-        slot < currentSlot
-    )
-    {
-        cell.classList.add(
-            "past-slot"
-        );
-    }
-});
-add below 
-/* =========================================
-   RED LINE
-========================================= */
-
-document
-.querySelectorAll(".slot")
-.forEach(function(cell)
-{
-    let day =
-    parseInt(
-        cell.dataset.day
-    );
-
-    let slot =
-    parseInt(
-        cell.dataset.slot
-    );
-
-    if(
-        day == todayDay
-        &&
-        slot == currentSlot
-    )
-    {
-        cell.classList.add(
-            "current-time-slot"
-        );
-    }
-});
-
-part 3
+Replace your current meetings array with:
 /* =========================================
    STATIC MEETINGS
 ========================================= */
@@ -435,175 +15,341 @@ let meetings =
 
     {
         id:2,
-        day:2,
-        start:8,
-        end:11,
-        title:"Code Review"
+        day:3,
+        start:2,
+        end:6,
+        title:"Meeting 2"
     },
 
     {
         id:3,
         day:2,
-        start:13,
-        end:16,
-        title:"Meeting Code 1"
+        start:8,
+        end:11,
+        title:"Code Review"
     }
 ];
-
-add below meeting array 
-/* =========================================
-   SLOT TO TIME
-========================================= */
-
-function slotToTime(slot)
-{
-    let hour =
-    Math.floor(
-        slot / 2
-    );
-
-    let minute =
-    (slot % 2)
-    *
-    30;
-
-    let ampm =
-    hour >= 12
-    ?
-    "PM"
-    :
-    "AM";
-
-    let displayHour =
-    hour % 12;
-
-    if(displayHour == 0)
-    {
-        displayHour = 12;
-    }
-
-    return (
-        displayHour
-        +
-        ":"
-        +
-        minute
-        .toString()
-        .padStart(
-            2,
-            "0"
-        )
-        +
-        ampm
-    );
-}
-add below 
+Inside
 function renderMeetings()
 {
-    meetings.forEach(
-    function(meeting)
-    {
-        let startCell =
-        document.querySelector(
-        ".slot[data-day='"
-        +
+find 
+let box =
+document.createElement(
+    "div"
+);
+Add BEFORE it:
+/* =========================================
+   FIND OVERLAPPING MEETINGS
+
+   Same Day
+   Same Start
+   Same End
+========================================= */
+
+let overlappingMeetings =
+meetings.filter(
+function(m)
+{
+    return (
+        m.day ==
         meeting.day
-        +
-        "'][data-slot='"
-        +
+
+        &&
+
+        m.start ==
         meeting.start
-        +
-        "']"
-        );
 
-        if(
-            !startCell
-        )
-        {
-            return;
-        }
+        &&
 
-        let box =
-        document.createElement(
-            "div"
-        );
-
-        box.className =
-        "meeting-box";
-
-        let totalSlots =
+        m.end ==
         meeting.end
-        -
-        meeting.start
-        +
-        1;
+    );
+}
+);
 
-        box.style.height =
-        (
-            totalSlots
-            *
-            25
-            -
-            4
-        )
-        +
-        "px";
+/* =========================================
+   TOTAL OVERLAPS
+========================================= */
 
-        box.innerHTML =
-        "<b>"
-        +
-        slotToTime(
-            meeting.start
-        )
-        +
-        " - "
-        +
-        slotToTime(
-            meeting.end
-        )
-        +
-        "</b>"
-        +
-        "<br>"
-        +
-        meeting.title;
+let totalOverlaps =
+overlappingMeetings.length;
 
-        startCell.appendChild(
-            box
-        );
-    });
+/* =========================================
+   CURRENT POSITION
+
+   Meeting 1 = 0
+   Meeting 2 = 1
+   Meeting 3 = 2
+========================================= */
+
+let position =
+overlappingMeetings.findIndex(
+function(m)
+{
+    return (
+        m.id ==
+        meeting.id
+    );
 }
 
-at bottom of js file add
-renderMeetings();
+);
+find 
+box.className =
+"meeting-box";
 
-add css 
+
+Immediately after add:
+/* =========================================
+   WIDTH DIVISION
+
+   2 meetings
+   = 50% each
+
+   3 meetings
+   = 33.33% each
+========================================= */
+
+box.style.width =
+(
+    100 /
+    totalOverlaps
+)
++
+"%";
+
+/* =========================================
+   LEFT POSITION
+
+   Meeting 1
+   left=0%
+
+   Meeting 2
+   left=50%
+========================================= */
+
+box.style.left =
+(
+    position
+    *
+    (
+        100 /
+        totalOverlaps
+    )
+)
++
+"%";
+
+Replace your current
+.meeting-box{
+
+
+
 /* =========================================
    MEETING BOX
 ========================================= */
 
-.slot{
-    position:relative;
-}
-
 .meeting-box{
+
     position:absolute;
 
     top:0;
-    left:2px;
-    right:2px;
 
     background:#b04eb3;
 
     color:black;
 
-    border:1px solid #000;
-
-    z-index:100;
+    border:1px solid black;
 
     padding:4px;
 
     font-size:11px;
 
     overflow:hidden;
+
+    z-index:100;
+
+    box-sizing:border-box;
 }
+
+
+
+part 5 
+
+At top of script.js
+
+/* =========================================
+   DRAG VARIABLES
+========================================= */
+
+let isDragging = false;
+
+let dragStartCell = null;
+
+let dragEndCell = null;
+
+
+cas 
+/* =========================================
+   DRAG HIGHLIGHT
+========================================= */
+
+.dragging{
+    background:skyblue !important;
+}
+
+
+Add below:
+
+renderMeetings();
+addd
+
+/* =========================================
+   DRAG START
+========================================= */
+
+document
+.querySelectorAll(".slot")
+.forEach(function(cell)
+{
+    cell.addEventListener(
+        "mousedown",
+        function()
+        {
+            let day =
+            parseInt(
+                this.dataset.day
+            );
+
+            let slot =
+            parseInt(
+                this.dataset.slot
+            );
+
+            /* Past Day */
+
+            if(day < todayDay)
+            {
+                return;
+            }
+
+            /* Past Time */
+
+            if(
+                day == todayDay
+                &&
+                slot < currentSlot
+            )
+            {
+                return;
+            }
+
+            isDragging = true;
+
+            dragStartCell = this;
+        }
+    );
+});
+
+
+add
+
+/* =========================================
+   DRAG MOVE
+========================================= */
+
+document
+.querySelectorAll(".slot")
+.forEach(function(cell)
+{
+    cell.addEventListener(
+        "mouseover",
+        function()
+        {
+            if(!isDragging)
+            {
+                return;
+            }
+
+            dragEndCell = this;
+
+            document
+            .querySelectorAll(".dragging")
+            .forEach(function(item)
+            {
+                item.classList.remove(
+                    "dragging"
+                );
+            });
+
+            let day =
+            parseInt(
+                dragStartCell.dataset.day
+            );
+
+            let currentDay =
+            parseInt(
+                this.dataset.day
+            );
+
+            if(
+                day != currentDay
+            )
+            {
+                return;
+            }
+
+            let startSlot =
+            parseInt(
+                dragStartCell.dataset.slot
+            );
+
+            let endSlot =
+            parseInt(
+                dragEndCell.dataset.slot
+            );
+
+            if(endSlot < startSlot)
+            {
+                let temp =
+                startSlot;
+
+                startSlot =
+                endSlot;
+
+                endSlot =
+                temp;
+            }
+
+            document
+            .querySelectorAll(".slot")
+            .forEach(function(item)
+            {
+                if(
+                    parseInt(item.dataset.day)
+                    ==
+                    day
+
+                    &&
+
+                    parseInt(item.dataset.slot)
+                    >=
+                    startSlot
+
+                    &&
+
+                    parseInt(item.dataset.slot)
+                    <=
+                    endSlot
+                )
+                {
+                    item.classList.add(
+                        "dragging"
+                    );
+                }
+            });
+        }
+    );
+});
+
+
+
