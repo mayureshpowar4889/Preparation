@@ -1,355 +1,361 @@
-Replace your current meetings array with:
-/* =========================================
-   STATIC MEETINGS
-========================================= */
+<?php
 
-let meetings =
-[
-    {
-        id:1,
-        day:3,
-        start:2,
-        end:6,
-        title:"Meeting 1"
-    },
+/* ==========================================
+   ONLY POST REQUEST ALLOWED
+========================================== */
 
-    {
-        id:2,
-        day:3,
-        start:2,
-        end:6,
-        title:"Meeting 2"
-    },
-
-    {
-        id:3,
-        day:2,
-        start:8,
-        end:11,
-        title:"Code Review"
-    }
-];
-Inside
-function renderMeetings()
+if ($_SERVER["REQUEST_METHOD"] != "POST")
 {
-find 
-let box =
-document.createElement(
-    "div"
-);
-Add BEFORE it:
-/* =========================================
-   FIND OVERLAPPING MEETINGS
-
-   Same Day
-   Same Start
-   Same End
-========================================= */
-
-let overlappingMeetings =
-meetings.filter(
-function(m)
-{
-    return (
-        m.day ==
-        meeting.day
-
-        &&
-
-        m.start ==
-        meeting.start
-
-        &&
-
-        m.end ==
-        meeting.end
-    );
-}
-);
-
-/* =========================================
-   TOTAL OVERLAPS
-========================================= */
-
-let totalOverlaps =
-overlappingMeetings.length;
-
-/* =========================================
-   CURRENT POSITION
-
-   Meeting 1 = 0
-   Meeting 2 = 1
-   Meeting 3 = 2
-========================================= */
-
-let position =
-overlappingMeetings.findIndex(
-function(m)
-{
-    return (
-        m.id ==
-        meeting.id
-    );
+    die("Invalid Request");
 }
 
-);
-find 
-box.className =
-"meeting-box";
+
+/* ==========================================
+   GET FORM DATA
+========================================== */
+
+$name = trim($_POST["name"] ?? "");
+
+$email = trim($_POST["email"] ?? "");
+
+$workEmail = trim($_POST["work_email"] ?? "");
+
+$dob = trim($_POST["dob"] ?? "");
+
+$gender = trim($_POST["gender"] ?? "");
+
+$state = trim($_POST["state"] ?? "");
+
+$city = trim($_POST["city"] ?? "");
+
+$password = $_POST["password"] ?? "";
+
+$confirmPassword =
+$_POST["confirm_password"] ?? "";
+
+$terms =
+isset($_POST["terms"]);
 
 
-Immediately after add:
-/* =========================================
-   WIDTH DIVISION
+/* ==========================================
+   BACKEND VALIDATION
+========================================== */
 
-   2 meetings
-   = 50% each
+$errors = [];
 
-   3 meetings
-   = 33.33% each
-========================================= */
 
-box.style.width =
-(
-    100 /
-    totalOverlaps
-)
-+
-"%";
+/* NAME */
 
-/* =========================================
-   LEFT POSITION
-
-   Meeting 1
-   left=0%
-
-   Meeting 2
-   left=50%
-========================================= */
-
-box.style.left =
-(
-    position
-    *
-    (
-        100 /
-        totalOverlaps
+if(empty($name))
+{
+    $errors[] =
+    "Name is required";
+}
+elseif(
+    !preg_match(
+    "/^[A-Za-z ]+$/",
+    $name
     )
 )
-+
-"%";
-
-Replace your current
-.meeting-box{
-
-
-
-/* =========================================
-   MEETING BOX
-========================================= */
-
-.meeting-box{
-
-    position:absolute;
-
-    top:0;
-
-    background:#b04eb3;
-
-    color:black;
-
-    border:1px solid black;
-
-    padding:4px;
-
-    font-size:11px;
-
-    overflow:hidden;
-
-    z-index:100;
-
-    box-sizing:border-box;
+{
+    $errors[] =
+    "Name should contain only alphabets";
+}
+elseif(strlen($name) < 3)
+{
+    $errors[] =
+    "Name must contain minimum 3 characters";
 }
 
 
+/* PERSONAL EMAIL */
 
-part 5 
-
-At top of script.js
-
-/* =========================================
-   DRAG VARIABLES
-========================================= */
-
-let isDragging = false;
-
-let dragStartCell = null;
-
-let dragEndCell = null;
-
-
-cas 
-/* =========================================
-   DRAG HIGHLIGHT
-========================================= */
-
-.dragging{
-    background:skyblue !important;
+if(empty($email))
+{
+    $errors[] =
+    "Personal email is required";
+}
+elseif(
+    !filter_var(
+    $email,
+    FILTER_VALIDATE_EMAIL
+    )
+)
+{
+    $errors[] =
+    "Invalid personal email";
 }
 
 
-Add below:
+/* WORK EMAIL */
 
-renderMeetings();
-addd
-
-/* =========================================
-   DRAG START
-========================================= */
-
-document
-.querySelectorAll(".slot")
-.forEach(function(cell)
+if(empty($workEmail))
 {
-    cell.addEventListener(
-        "mousedown",
-        function()
-        {
-            let day =
-            parseInt(
-                this.dataset.day
-            );
-
-            let slot =
-            parseInt(
-                this.dataset.slot
-            );
-
-            /* Past Day */
-
-            if(day < todayDay)
-            {
-                return;
-            }
-
-            /* Past Time */
-
-            if(
-                day == todayDay
-                &&
-                slot < currentSlot
-            )
-            {
-                return;
-            }
-
-            isDragging = true;
-
-            dragStartCell = this;
-        }
-    );
-});
-
-
-add
-
-/* =========================================
-   DRAG MOVE
-========================================= */
-
-document
-.querySelectorAll(".slot")
-.forEach(function(cell)
+    $errors[] =
+    "Work email is required";
+}
+elseif(
+    !filter_var(
+    $workEmail,
+    FILTER_VALIDATE_EMAIL
+    )
+)
 {
-    cell.addEventListener(
-        "mouseover",
-        function()
-        {
-            if(!isDragging)
-            {
-                return;
-            }
-
-            dragEndCell = this;
-
-            document
-            .querySelectorAll(".dragging")
-            .forEach(function(item)
-            {
-                item.classList.remove(
-                    "dragging"
-                );
-            });
-
-            let day =
-            parseInt(
-                dragStartCell.dataset.day
-            );
-
-            let currentDay =
-            parseInt(
-                this.dataset.day
-            );
-
-            if(
-                day != currentDay
-            )
-            {
-                return;
-            }
-
-            let startSlot =
-            parseInt(
-                dragStartCell.dataset.slot
-            );
-
-            let endSlot =
-            parseInt(
-                dragEndCell.dataset.slot
-            );
-
-            if(endSlot < startSlot)
-            {
-                let temp =
-                startSlot;
-
-                startSlot =
-                endSlot;
-
-                endSlot =
-                temp;
-            }
-
-            document
-            .querySelectorAll(".slot")
-            .forEach(function(item)
-            {
-                if(
-                    parseInt(item.dataset.day)
-                    ==
-                    day
-
-                    &&
-
-                    parseInt(item.dataset.slot)
-                    >=
-                    startSlot
-
-                    &&
-
-                    parseInt(item.dataset.slot)
-                    <=
-                    endSlot
-                )
-                {
-                    item.classList.add(
-                        "dragging"
-                    );
-                }
-            });
-        }
-    );
-});
+    $errors[] =
+    "Invalid work email";
+}
 
 
+/* DOB */
 
+if(empty($dob))
+{
+    $errors[] =
+    "Date of birth is required";
+}
+else
+{
+    $birthDate =
+    new DateTime($dob);
+
+    $today =
+    new DateTime();
+
+    $age =
+    $today->diff($birthDate)->y;
+
+    if($age < 18)
+    {
+        $errors[] =
+        "Age must be 18 or above";
+    }
+}
+
+
+/* GENDER */
+
+if(empty($gender))
+{
+    $errors[] =
+    "Gender is required";
+}
+
+
+/* STATE */
+
+if(empty($state))
+{
+    $errors[] =
+    "State is required";
+}
+
+
+/* CITY */
+
+if(empty($city))
+{
+    $errors[] =
+    "City is required";
+}
+
+
+/* PASSWORD */
+
+$passwordPattern =
+"/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/";
+
+if(empty($password))
+{
+    $errors[] =
+    "Password is required";
+}
+elseif(
+    !preg_match(
+    $passwordPattern,
+    $password
+    )
+)
+{
+    $errors[] =
+    "Password format invalid";
+}
+
+
+/* CONFIRM PASSWORD */
+
+if($password !== $confirmPassword)
+{
+    $errors[] =
+    "Passwords do not match";
+}
+
+
+/* TERMS */
+
+if(!$terms)
+{
+    $errors[] =
+    "Accept terms and conditions";
+}
+
+
+/* ==========================================
+   READ JSON FILE
+========================================== */
+
+$fileName = "data.json";
+
+$jsonData =
+file_get_contents($fileName);
+
+$users =
+json_decode($jsonData, true);
+
+if(!is_array($users))
+{
+    $users = [];
+}
+
+
+/* ==========================================
+   DUPLICATE EMAIL CHECK
+========================================== */
+
+foreach($users as $user)
+{
+    if(
+        strtolower($user["email"])
+        ==
+        strtolower($email)
+    )
+    {
+        $errors[] =
+        "Personal email already exists";
+
+        break;
+    }
+}
+
+
+/* ==========================================
+   SHOW ERRORS
+========================================== */
+
+if(count($errors) > 0)
+{
+    echo "<h2>Validation Errors</h2>";
+
+    echo "<ul>";
+
+    foreach($errors as $error)
+    {
+        echo "<li>" .
+             htmlspecialchars($error)
+             .
+             "</li>";
+    }
+
+    echo "</ul>";
+
+    echo '<a href="index.php">
+          Back
+          </a>';
+
+    exit;
+}
+
+
+/* ==========================================
+   HASH PASSWORD
+========================================== */
+
+$hashedPassword =
+password_hash(
+$password,
+PASSWORD_DEFAULT
+);
+
+
+/* ==========================================
+   CREATE USER ARRAY
+========================================== */
+
+$newUser =
+[
+    "name" => $name,
+
+    "email" => $email,
+
+    "work_email" => $workEmail,
+
+    "dob" => $dob,
+
+    "gender" => $gender,
+
+    "state" => $state,
+
+    "city" => $city,
+
+    "password" =>
+    $hashedPassword,
+
+    "created_at" =>
+    date("Y-m-d H:i:s")
+];
+
+
+/* ==========================================
+   APPEND NEW USER
+========================================== */
+
+$users[] =
+$newUser;
+
+
+/* ==========================================
+   SAVE JSON
+========================================== */
+
+file_put_contents(
+    $fileName,
+    json_encode(
+        $users,
+        JSON_PRETTY_PRINT
+    )
+);
+
+
+/* ==========================================
+   SUCCESS MESSAGE
+========================================== */
+
+echo "
+<!DOCTYPE html>
+<html>
+<head>
+<title>Success</title>
+</head>
+<body>
+
+<h2>
+Registration Successful
+</h2>
+
+<p>
+Welcome <b>"
+. htmlspecialchars($name) .
+"</b>
+</p>
+
+<p>
+Your data has been stored successfully.
+</p>
+
+<a href='index.php'>
+Register Another User
+</a>
+
+</body>
+</html>
+";
+?>
