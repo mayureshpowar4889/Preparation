@@ -1,1 +1,490 @@
- 
+ submission model 
+public function getSubmissionById($submissionId)
+{
+    $stmt = $this->conn->prepare(
+        "SELECT *
+         FROM form_submission_values
+         WHERE submission_id=?"
+    );
+
+    $stmt->bind_param("i", $submissionId);
+
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+public function updateFieldValue($submissionId,$fieldId,$value)
+{
+    $stmt = $this->conn->prepare(
+        "UPDATE form_submission_values
+         SET field_value=?
+         WHERE submission_id=?
+         AND field_id=?"
+    );
+
+    $stmt->bind_param(
+        "sii",
+        $value,
+        $submissionId,
+        $fieldId
+    );
+
+    return $stmt->execute();
+}
+submission cobtroller 
+public function edit()
+{
+    if (
+        !isset($_GET['form_id']) ||
+        !isset($_GET['submission_id'])
+    ) {
+        die("Invalid Request");
+    }
+
+    $formId = $_GET['form_id'];
+    $submissionId = $_GET['submission_id'];
+
+    // Get form details
+    $form = $this->form->getForm($formId);
+
+    // Get all fields
+    $fields = $this->form->getFields($formId);
+
+    // Get saved values
+    $values = $this->submission->getSubmissionById($submissionId);
+
+    // Convert values into an array
+    $savedValues = [];
+
+    foreach ($values as $value) {
+        $savedValues[$value['field_id']] = $value['field_value'];
+    }
+
+    // Attach options and saved value to each field
+    foreach ($fields as &$field) {
+
+        if (
+            $field['field_type'] == "select" ||
+            $field['field_type'] == "radio" ||
+            $field['field_type'] == "checkbox"
+        ) {
+            $field['options'] = $this->form->getOptions($field['id']);
+        }
+
+        $field['value'] = isset($savedValues[$field['id']])
+            ? $savedValues[$field['id']]
+            : "";
+    }
+
+    // Send data to Smarty
+    $this->smarty->assign("form", $form);
+    $this->smarty->assign("fields", $fields);
+    $this->smarty->assign("submission_id", $submissionId);
+
+    $this->smarty->display("dynamic_form.tpl");
+}
+route 
+case "edit":
+
+    $controller = new SubmissionController();
+
+    $controller->edit();
+
+    break;
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>{$form.form_name}</title>
+
+    <style>
+
+        body{
+            font-family:Arial;
+            background:#f5f5f5;
+        }
+
+        .container{
+            width:700px;
+            margin:30px auto;
+            background:#fff;
+            padding:20px;
+            border-radius:5px;
+            box-shadow:0 0 10px #ccc;
+        }
+
+        .form-group{
+            margin-bottom:15px;
+        }
+
+        label{
+            display:block;
+            margin-bottom:5px;
+            font-weight:bold;
+        }
+
+        input[type=text],
+        input[type=email],
+        input[type=password],
+        input[type=number],
+        input[type=tel],
+        input[type=url],
+        input[type=date],
+        input[type=time],
+        input[type=color],
+        textarea,
+        select{
+
+            width:100%;
+            padding:8px;
+            border:1px solid #ccc;
+            border-radius:4px;
+
+        }
+
+        textarea{
+            height:120px;
+        }
+
+        .option{
+            margin-right:15px;
+        }
+
+        button{
+
+            padding:10px 25px;
+            background:#007bff;
+            color:white;
+            border:none;
+            cursor:pointer;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>{$form.form_name}</h2>
+
+<form
+method="post"
+action="index.php?action=update"
+enctype="multipart/form-data">
+
+<input
+type="hidden"
+name="form_id"
+value="{$form.id}">
+
+<input
+type="hidden"
+name="submission_id"
+value="{$submission_id}">
+
+{foreach $fields as $field}
+
+<div class="form-group">
+
+<label>
+
+{$field.label}
+
+{if $field.is_required}
+
+<span style="color:red">*</span>
+
+{/if}
+
+</label>
+
+{if $field.field_type=="text"
+||
+$field.field_type=="email"
+||
+$field.field_type=="password"
+||
+$field.field_type=="number"
+||
+$field.field_type=="tel"
+||
+$field.field_type=="url"
+||
+$field.field_type=="date"
+||
+$field.field_type=="time"
+||
+$field.field_type=="color"}
+
+<input
+
+type="{$field.field_type}"
+
+name="{$field.field_name}"
+
+value="{$field.value}"
+
+{if $field.is_required}
+
+required
+
+{/if}
+
+>
+
+{/if}
+
+{if $field.field_type=="textarea"}
+
+<textarea
+
+name="{$field.field_name}"
+
+{if $field.is_required}
+
+required
+
+{/if}
+
+>{$field.value}</textarea>
+
+{/if}
+
+{if $field.field_type=="select"}
+
+<select
+
+name="{$field.field_name}"
+
+{if $field.is_required}
+
+required
+
+{/if}
+
+>
+
+<option value="">Select</option>
+
+{foreach $field.options as $option}
+
+<option
+
+value="{$option.option_value}"
+
+{if $field.value==$option.option_value}
+
+selected
+
+{/if}
+
+>
+
+{$option.option_name}
+
+</option>
+
+{/foreach}
+
+</select>
+
+{/if}
+{if $field.field_type=="radio"}
+
+    {foreach $field.options as $option}
+
+        <label class="option">
+
+            <input
+            type="radio"
+            name="{$field.field_name}"
+            value="{$option.option_value}"
+
+            {if $field.value==$option.option_value}
+                checked
+            {/if}
+
+            {if $field.is_required}
+                required
+            {/if}
+            >
+
+            {$option.option_name}
+
+        </label>
+
+    {/foreach}
+
+{/if}
+
+
+{if $field.field_type=="checkbox"}
+
+    {assign var="selectedValues" value=","|explode:$field.value}
+
+    {foreach $field.options as $option}
+
+        <label class="option">
+
+            <input
+            type="checkbox"
+            name="{$field.field_name}[]"
+            value="{$option.option_value}"
+
+            {if in_array($option.option_value,$selectedValues)}
+                checked
+            {/if}
+            >
+
+            {$option.option_name}
+
+        </label>
+
+    {/foreach}
+
+{/if}
+
+
+{if $field.field_type=="file"}
+
+    {if $field.value != ""}
+
+        <p>
+            <b>Current File :</b>
+            {$field.value}
+        </p>
+
+    {/if}
+
+    <input
+    type="file"
+    name="{$field.field_name}">
+
+{/if}
+
+</div>
+
+{/foreach}
+
+<br>
+
+<button type="submit">
+    Update
+</button>
+
+</form>
+
+</div>
+
+</body>
+</html>
+case "update":
+
+    $controller = new SubmissionController();
+
+    $controller->update();
+
+    break;
+public function update()
+{
+    if (
+        !isset($_POST['form_id']) ||
+        !isset($_POST['submission_id'])
+    ) {
+        die("Invalid Request");
+    }
+
+    $formId = $_POST['form_id'];
+
+    $submissionId = $_POST['submission_id'];
+
+    $fields = $this->form->getFields($formId);
+
+    foreach ($fields as $field)
+    {
+        $fieldId = $field['id'];
+
+        $fieldName = $field['field_name'];
+
+        $fieldType = $field['field_type'];
+
+        $value = "";
+
+        // Checkbox
+        if ($fieldType == "checkbox")
+        {
+            if (isset($_POST[$fieldName])) {
+                $value = implode(",", $_POST[$fieldName]);
+            }
+        }
+
+        // File Upload
+        elseif ($fieldType == "file")
+        {
+            if (
+                isset($_FILES[$fieldName]) &&
+                $_FILES[$fieldName]['error'] == 0
+            ) {
+
+                $fileName =
+                time()."_".$_FILES[$fieldName]['name'];
+
+                move_uploaded_file(
+
+                    $_FILES[$fieldName]['tmp_name'],
+
+                    "../uploads/".$fileName
+
+                );
+
+                $value = $fileName;
+            }
+            else
+            {
+                // Keep old value
+                $old =
+                $this->submission
+                     ->getSubmissionById($submissionId);
+
+                foreach($old as $row)
+                {
+                    if($row['field_id']==$fieldId)
+                    {
+                        $value=$row['field_value'];
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Normal Fields
+        else
+        {
+            if(isset($_POST[$fieldName]))
+            {
+                $value = $_POST[$fieldName];
+            }
+        }
+
+        $this->submission->updateFieldValue(
+
+            $submissionId,
+
+            $fieldId,
+
+            $value
+
+        );
+    }
+
+    header(
+        "Location:index.php?action=list&form_id=".$formId
+    );
+
+    exit;
+}
