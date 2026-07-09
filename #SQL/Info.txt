@@ -1,164 +1,326 @@
- submission model 
-public function getSubmissionById($submissionId)
+auth.php
+<?php
+
+class Auth
+{
+    // Start session if not already started
+    public static function startSession()
+    {
+        if (session_status() == PHP_SESSION_NONE)
+        {
+            session_start();
+        }
+    }
+
+    // Check whether user is logged in
+    public static function checkLogin()
+    {
+        self::startSession();
+
+        if (!isset($_SESSION['user_id']))
+        {
+            header("Location:index.php?action=login");
+            exit;
+        }
+    }
+
+    // Check user role
+    public static function checkRole($role)
+    {
+        self::checkLogin();
+
+        if ($_SESSION['role'] != $role)
+        {
+            die("Access Denied");
+        }
+    }
+
+    // Get current logged-in user
+    public static function user()
+    {
+        self::checkLogin();
+
+        return [
+            "id"   => $_SESSION['user_id'],
+            "name" => $_SESSION['full_name'],
+            "role" => $_SESSION['role']
+        ];
+    }
+
+    // Logout
+    public static function logout()
+    {
+        self::startSession();
+
+        session_destroy();
+
+        header("Location:index.php?action=login");
+        exit;
+    }
+}
+controller.php 
+protected function requireLogin()
+{
+    Auth::checkLogin();
+}
+
+protected function requireRole($role)
+{
+    Auth::checkRole($role);
+}
+dashboard control
+<?php
+
+require_once "../app/core/Controller.php";
+require_once "../app/core/Auth.php";
+require_once "../app/models/Form.php";
+require_once "../app/models/Submission.php";
+require_once "../app/models/User.php";
+
+class DashboardController extends Controller
+{
+    private $form;
+    private $submission;
+    private $user;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->form = new Form();
+        $this->submission = new Submission();
+        $this->user = new User();
+    }
+
+    // ===========================
+    // User Dashboard
+    // ===========================
+    public function userDashboard()
+    {
+        $this->requireRole("user");
+
+        $user = Auth::user();
+
+        $assignedForms = $this->form->getAssignedForms($user['id']);
+
+        $submittedForms = $this->submission
+                               ->getUserSubmissions($user['id']);
+
+        $this->smarty->assign("user",$user);
+
+        $this->smarty->assign(
+            "assignedForms",
+            $assignedForms
+        );
+
+        $this->smarty->assign(
+            "submittedForms",
+            $submittedForms
+        );
+
+        $this->smarty->display("dashboard.tpl");
+    }
+
+    // ===========================
+    // Super Admin Dashboard
+    // ===========================
+    public function adminDashboard()
+    {
+        $this->requireRole("super_admin");
+
+        $user = Auth::user();
+
+        $users = $this->user->getAllUsers();
+
+        $forms = $this->form->getForms();
+
+        $submissions =
+        $this->submission->getAllSubmissions();
+
+        $this->smarty->assign("user",$user);
+
+        $this->smarty->assign("users",$users);
+
+        $this->smarty->assign("forms",$forms);
+
+        $this->smarty->assign(
+            "submissions",
+            $submissions
+        );
+
+        $this->smarty->display(
+            "admin_dashboard.tpl"
+        );
+    }
+}
+user.php
+public function getAllUsers()
 {
     $stmt = $this->conn->prepare(
         "SELECT *
-         FROM form_submission_values
-         WHERE submission_id=?"
+         FROM users
+         WHERE role='user'
+         ORDER BY full_name"
     );
-
-    $stmt->bind_param("i", $submissionId);
 
     $stmt->execute();
 
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
-public function updateFieldValue($submissionId,$fieldId,$value)
+form.pho
+public function getForms()
 {
     $stmt = $this->conn->prepare(
-        "UPDATE form_submission_values
-         SET field_value=?
-         WHERE submission_id=?
-         AND field_id=?"
+        "SELECT *
+         FROM forms
+         ORDER BY form_name"
     );
 
-    $stmt->bind_param(
-        "sii",
-        $value,
-        $submissionId,
-        $fieldId
-    );
+    $stmt->execute();
 
-    return $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
-submission cobtroller 
-public function edit()
+public function getAssignedForms($userId)
 {
-    if (
-        !isset($_GET['form_id']) ||
-        !isset($_GET['submission_id'])
-    ) {
-        die("Invalid Request");
-    }
+    $stmt = $this->conn->prepare(
 
-    $formId = $_GET['form_id'];
-    $submissionId = $_GET['submission_id'];
+        "SELECT
+            f.*
 
-    // Get form details
-    $form = $this->form->getForm($formId);
+        FROM form_access fa
 
-    // Get all fields
-    $fields = $this->form->getFields($formId);
+        INNER JOIN forms f
 
-    // Get saved values
-    $values = $this->submission->getSubmissionById($submissionId);
+        ON f.id = fa.form_id
 
-    // Convert values into an array
-    $savedValues = [];
+        WHERE fa.user_id=?"
 
-    foreach ($values as $value) {
-        $savedValues[$value['field_id']] = $value['field_value'];
-    }
+    );
 
-    // Attach options and saved value to each field
-    foreach ($fields as &$field) {
+    $stmt->bind_param("i",$userId);
 
-        if (
-            $field['field_type'] == "select" ||
-            $field['field_type'] == "radio" ||
-            $field['field_type'] == "checkbox"
-        ) {
-            $field['options'] = $this->form->getOptions($field['id']);
-        }
+    $stmt->execute();
 
-        $field['value'] = isset($savedValues[$field['id']])
-            ? $savedValues[$field['id']]
-            : "";
-    }
-
-    // Send data to Smarty
-    $this->smarty->assign("form", $form);
-    $this->smarty->assign("fields", $fields);
-    $this->smarty->assign("submission_id", $submissionId);
-
-    $this->smarty->display("dynamic_form.tpl");
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
-route 
-case "edit":
+submission.php
+public function getUserSubmissions($userId)
+{
+    $stmt = $this->conn->prepare(
 
-    $controller = new SubmissionController();
+        "SELECT *
 
-    $controller->edit();
+         FROM form_submissions
 
-    break;
+         WHERE user_id=?"
 
+    );
+
+    $stmt->bind_param("i",$userId);
+
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+public function getAllSubmissions()
+{
+    $stmt = $this->conn->prepare(
+
+        "SELECT *
+
+         FROM form_submissions"
+
+    );
+
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+dashboard.html 
 <!DOCTYPE html>
 <html>
 
 <head>
 
-    <title>{$form.form_name}</title>
+    <title>User Dashboard</title>
 
     <style>
 
-        body{
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
             font-family:Arial;
-            background:#f5f5f5;
+        }
+
+        body{
+            background:#f4f4f4;
+        }
+
+        .header{
+            background:#007bff;
+            color:white;
+            padding:15px;
         }
 
         .container{
-            width:700px;
-            margin:30px auto;
-            background:#fff;
-            padding:20px;
-            border-radius:5px;
-            box-shadow:0 0 10px #ccc;
+            width:90%;
+            margin:20px auto;
         }
 
-        .form-group{
-            margin-bottom:15px;
+        .menu{
+            margin:20px 0;
         }
 
-        label{
-            display:block;
-            margin-bottom:5px;
-            font-weight:bold;
-        }
+        .menu a{
 
-        input[type=text],
-        input[type=email],
-        input[type=password],
-        input[type=number],
-        input[type=tel],
-        input[type=url],
-        input[type=date],
-        input[type=time],
-        input[type=color],
-        textarea,
-        select{
-
-            width:100%;
-            padding:8px;
-            border:1px solid #ccc;
-            border-radius:4px;
-
-        }
-
-        textarea{
-            height:120px;
-        }
-
-        .option{
-            margin-right:15px;
-        }
-
-        button{
-
-            padding:10px 25px;
+            text-decoration:none;
+            padding:10px 20px;
             background:#007bff;
             color:white;
-            border:none;
-            cursor:pointer;
+            margin-right:10px;
+            border-radius:5px;
+
+        }
+
+        .card{
+
+            background:white;
+
+            padding:20px;
+
+            margin-top:20px;
+
+            border-radius:5px;
+
+            box-shadow:0 0 5px #ccc;
+
+        }
+
+        table{
+
+            width:100%;
+
+            border-collapse:collapse;
+
+            margin-top:15px;
+
+        }
+
+        table th,
+        table td{
+
+            border:1px solid #ddd;
+
+            padding:10px;
+
+        }
+
+        table th{
+
+            background:#007bff;
+
+            color:white;
 
         }
 
@@ -168,323 +330,156 @@ case "edit":
 
 <body>
 
-<div class="container">
+<div class="header">
 
-<h2>{$form.form_name}</h2>
+<h2>
 
-<form
-method="post"
-action="index.php?action=update"
-enctype="multipart/form-data">
+Welcome {$user.name}
 
-<input
-type="hidden"
-name="form_id"
-value="{$form.id}">
-
-<input
-type="hidden"
-name="submission_id"
-value="{$submission_id}">
-
-{foreach $fields as $field}
-
-<div class="form-group">
-
-<label>
-
-{$field.label}
-
-{if $field.is_required}
-
-<span style="color:red">*</span>
-
-{/if}
-
-</label>
-
-{if $field.field_type=="text"
-||
-$field.field_type=="email"
-||
-$field.field_type=="password"
-||
-$field.field_type=="number"
-||
-$field.field_type=="tel"
-||
-$field.field_type=="url"
-||
-$field.field_type=="date"
-||
-$field.field_type=="time"
-||
-$field.field_type=="color"}
-
-<input
-
-type="{$field.field_type}"
-
-name="{$field.field_name}"
-
-value="{$field.value}"
-
-{if $field.is_required}
-
-required
-
-{/if}
-
->
-
-{/if}
-
-{if $field.field_type=="textarea"}
-
-<textarea
-
-name="{$field.field_name}"
-
-{if $field.is_required}
-
-required
-
-{/if}
-
->{$field.value}</textarea>
-
-{/if}
-
-{if $field.field_type=="select"}
-
-<select
-
-name="{$field.field_name}"
-
-{if $field.is_required}
-
-required
-
-{/if}
-
->
-
-<option value="">Select</option>
-
-{foreach $field.options as $option}
-
-<option
-
-value="{$option.option_value}"
-
-{if $field.value==$option.option_value}
-
-selected
-
-{/if}
-
->
-
-{$option.option_name}
-
-</option>
-
-{/foreach}
-
-</select>
-
-{/if}
-{if $field.field_type=="radio"}
-
-    {foreach $field.options as $option}
-
-        <label class="option">
-
-            <input
-            type="radio"
-            name="{$field.field_name}"
-            value="{$option.option_value}"
-
-            {if $field.value==$option.option_value}
-                checked
-            {/if}
-
-            {if $field.is_required}
-                required
-            {/if}
-            >
-
-            {$option.option_name}
-
-        </label>
-
-    {/foreach}
-
-{/if}
-
-
-{if $field.field_type=="checkbox"}
-
-    {assign var="selectedValues" value=","|explode:$field.value}
-
-    {foreach $field.options as $option}
-
-        <label class="option">
-
-            <input
-            type="checkbox"
-            name="{$field.field_name}[]"
-            value="{$option.option_value}"
-
-            {if in_array($option.option_value,$selectedValues)}
-                checked
-            {/if}
-            >
-
-            {$option.option_name}
-
-        </label>
-
-    {/foreach}
-
-{/if}
-
-
-{if $field.field_type=="file"}
-
-    {if $field.value != ""}
-
-        <p>
-            <b>Current File :</b>
-            {$field.value}
-        </p>
-
-    {/if}
-
-    <input
-    type="file"
-    name="{$field.field_name}">
-
-{/if}
+</h2>
 
 </div>
 
+<div class="container">
+
+<div class="menu">
+
+<a href="index.php?action=userDashboard">
+
+Dashboard
+
+</a>
+
+<a href="index.php?action=myForms">
+
+My Forms
+
+</a>
+
+<a href="index.php?action=mySubmissions">
+
+My Submissions
+
+</a>
+
+<a href="index.php?action=logout">
+
+Logout
+
+</a>
+
+</div>
+
+<div class="card">
+
+<h3>
+
+Assigned Forms
+
+</h3>
+
+<table>
+
+<tr>
+
+<th>ID</th>
+
+<th>Form Name</th>
+
+<th>Action</th>
+
+</tr>
+
+{foreach $assignedForms as $form}
+
+<tr>
+
+<td>
+
+{$form.id}
+
+</td>
+
+<td>
+
+{$form.form_name}
+
+</td>
+
+<td>
+
+<a href="index.php?action=showForm&form_id={$form.id}">
+
+Open
+
+</a>
+
+</td>
+
+</tr>
+
 {/foreach}
 
-<br>
+</table>
 
-<button type="submit">
-    Update
-</button>
+</div>
 
-</form>
+<div class="card">
+
+<h3>
+
+Submitted Forms
+
+</h3>
+
+<table>
+
+<tr>
+
+<th>Submission ID</th>
+
+<th>Form ID</th>
+
+<th>Action</th>
+
+</tr>
+
+{foreach $submittedForms as $submission}
+
+<tr>
+
+<td>
+
+{$submission.id}
+
+</td>
+
+<td>
+
+{$submission.form_id}
+
+</td>
+
+<td>
+
+<a href="index.php?action=edit&submission_id={$submission.id}&form_id={$submission.form_id}">
+
+Edit
+
+</a>
+
+</td>
+
+</tr>
+
+{/foreach}
+
+</table>
+
+</div>
 
 </div>
 
 </body>
+
 </html>
-case "update":
-
-    $controller = new SubmissionController();
-
-    $controller->update();
-
-    break;
-public function update()
-{
-    if (
-        !isset($_POST['form_id']) ||
-        !isset($_POST['submission_id'])
-    ) {
-        die("Invalid Request");
-    }
-
-    $formId = $_POST['form_id'];
-
-    $submissionId = $_POST['submission_id'];
-
-    $fields = $this->form->getFields($formId);
-
-    foreach ($fields as $field)
-    {
-        $fieldId = $field['id'];
-
-        $fieldName = $field['field_name'];
-
-        $fieldType = $field['field_type'];
-
-        $value = "";
-
-        // Checkbox
-        if ($fieldType == "checkbox")
-        {
-            if (isset($_POST[$fieldName])) {
-                $value = implode(",", $_POST[$fieldName]);
-            }
-        }
-
-        // File Upload
-        elseif ($fieldType == "file")
-        {
-            if (
-                isset($_FILES[$fieldName]) &&
-                $_FILES[$fieldName]['error'] == 0
-            ) {
-
-                $fileName =
-                time()."_".$_FILES[$fieldName]['name'];
-
-                move_uploaded_file(
-
-                    $_FILES[$fieldName]['tmp_name'],
-
-                    "../uploads/".$fileName
-
-                );
-
-                $value = $fileName;
-            }
-            else
-            {
-                // Keep old value
-                $old =
-                $this->submission
-                     ->getSubmissionById($submissionId);
-
-                foreach($old as $row)
-                {
-                    if($row['field_id']==$fieldId)
-                    {
-                        $value=$row['field_value'];
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Normal Fields
-        else
-        {
-            if(isset($_POST[$fieldName]))
-            {
-                $value = $_POST[$fieldName];
-            }
-        }
-
-        $this->submission->updateFieldValue(
-
-            $submissionId,
-
-            $fieldId,
-
-            $value
-
-        );
-    }
-
-    header(
-        "Location:index.php?action=list&form_id=".$formId
-    );
-
-    exit;
-}
