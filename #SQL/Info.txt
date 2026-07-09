@@ -611,3 +611,211 @@ Grant
 </body>
 
 </html>
+admin 
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Super Admin Dashboard</title>
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:Arial;
+        }
+
+        body{
+            background:#f4f4f4;
+        }
+
+        .header{
+            background:#343a40;
+            color:white;
+            padding:15px;
+        }
+
+        .container{
+            width:90%;
+            margin:20px auto;
+        }
+
+        .menu{
+            margin-bottom:20px;
+        }
+
+        .menu a{
+            text-decoration:none;
+            background:#343a40;
+            color:white;
+            padding:10px 18px;
+            margin-right:10px;
+            border-radius:5px;
+        }
+
+        .card{
+            background:white;
+            margin-top:20px;
+            padding:20px;
+            border-radius:5px;
+            box-shadow:0 0 5px #ccc;
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+            margin-top:15px;
+        }
+
+        table th,
+        table td{
+            border:1px solid #ddd;
+            padding:10px;
+            text-align:left;
+        }
+
+        table th{
+            background:#343a40;
+            color:white;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="header">
+
+<h2>
+
+Welcome {$user.name}
+
+</h2>
+
+</div>
+
+<div class="container">
+
+<div class="menu">
+
+<a href="index.php?action=adminDashboard">
+Dashboard
+</a>
+
+<a href="index.php?action=manageAccess">
+Manage Form Access
+</a>
+
+<a href="index.php?action=logout">
+Logout
+</a>
+
+</div>
+
+<div class="card">
+
+<h3>Users</h3>
+
+<table>
+
+<tr>
+
+<th>ID</th>
+
+<th>Name</th>
+
+<th>Email</th>
+
+</tr>
+
+{foreach $users as $u}
+
+<tr>
+
+<td>{$u.id}</td>
+
+<td>{$u.full_name}</td>
+
+<td>{$u.email}</td>
+
+</tr>
+
+{/foreach}
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h3>Forms</h3>
+
+<table>
+
+<tr>
+
+<th>ID</th>
+
+<th>Form Name</th>
+
+</tr>
+
+{foreach $forms as $form}
+
+<tr>
+
+<td>{$form.id}</td>
+
+<td>{$form.form_name}</td>
+
+</tr>
+
+{/foreach}
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h3>Submitted Forms</h3>
+
+<table>
+
+<tr>
+
+<th>Submission ID</th>
+
+<th>Form ID</th>
+
+<th>User ID</th>
+
+</tr>
+
+{foreach $submissions as $submission}
+
+<tr>
+
+<td>{$submission.id}</td>
+
+<td>{$submission.form_id}</td>
+
+<td>{$submission.user_id}</td>
+
+</tr>
+
+{/foreach}
+
+</table>
+
+</div>
+
+</div>
+
+</body>
+
+</html>
