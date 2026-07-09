@@ -1,112 +1,250 @@
-auth.php
+access.php
 <?php
 
-class Auth
+require_once "../app/core/Model.php";
+
+class Access extends Model
 {
-    // Start session if not already started
-    public static function startSession()
+
+    // Get All Users
+    public function getUsers()
     {
-        if (session_status() == PHP_SESSION_NONE)
-        {
-            session_start();
-        }
+        $stmt = $this->conn->prepare(
+
+            "SELECT
+                id,
+                full_name,
+                email
+
+             FROM users
+
+             WHERE role='user'
+
+             ORDER BY full_name"
+
+        );
+
+        $stmt->execute();
+
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Check whether user is logged in
-    public static function checkLogin()
+    // Get All Forms
+    public function getForms()
     {
-        self::startSession();
+        $stmt = $this->conn->prepare(
 
-        if (!isset($_SESSION['user_id']))
-        {
-            header("Location:index.php?action=login");
-            exit;
-        }
+            "SELECT *
+
+             FROM forms
+
+             ORDER BY form_name"
+
+        );
+
+        $stmt->execute();
+
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Check user role
-    public static function checkRole($role)
+    // Forms Assigned To User
+    public function getUserForms($userId)
     {
-        self::checkLogin();
+        $stmt = $this->conn->prepare(
 
-        if ($_SESSION['role'] != $role)
-        {
-            die("Access Denied");
-        }
+            "SELECT
+
+                f.*
+
+             FROM form_access fa
+
+             INNER JOIN forms f
+
+             ON f.id = fa.form_id
+
+             WHERE fa.user_id=?"
+
+        );
+
+        $stmt->bind_param("i",$userId);
+
+        $stmt->execute();
+
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Get current logged-in user
-    public static function user()
+    // Grant Form Access
+    public function grantAccess(
+        $userId,
+        $formId,
+        $grantedBy
+    )
     {
-        self::checkLogin();
+        $stmt = $this->conn->prepare(
 
-        return [
-            "id"   => $_SESSION['user_id'],
-            "name" => $_SESSION['full_name'],
-            "role" => $_SESSION['role']
-        ];
+            "INSERT INTO form_access
+            (
+                user_id,
+                form_id,
+                granted_by
+            )
+
+            VALUES
+            (
+                ?,?,?
+            )"
+
+        );
+
+        $stmt->bind_param(
+
+            "iii",
+
+            $userId,
+
+            $formId,
+
+            $grantedBy
+
+        );
+
+        return $stmt->execute();
     }
 
-    // Logout
-    public static function logout()
+    // Remove Form Access
+    public function removeAccess(
+        $userId,
+        $formId
+    )
     {
-        self::startSession();
+        $stmt = $this->conn->prepare(
 
-        session_destroy();
+            "DELETE FROM form_access
 
-        header("Location:index.php?action=login");
-        exit;
+             WHERE user_id=?
+
+             AND form_id=?"
+
+        );
+
+        $stmt->bind_param(
+
+            "ii",
+
+            $userId,
+
+            $formId
+
+        );
+
+        return $stmt->execute();
     }
+
+    // Check if access already exists
+    public function hasAccess(
+        $userId,
+        $formId
+    )
+    {
+        $stmt = $this->conn->prepare(
+
+            "SELECT id
+
+             FROM form_access
+
+             WHERE user_id=?
+
+             AND form_id=?"
+
+        );
+
+        $stmt->bind_param(
+
+            "ii",
+
+            $userId,
+
+            $formId
+
+        );
+
+        $stmt->execute();
+
+        return $stmt
+               ->get_result()
+               ->num_rows > 0;
+    }
+
 }
-controller.php 
-protected function requireLogin()
-{
-    Auth::checkLogin();
-}
-
-protected function requireRole($role)
-{
-    Auth::checkRole($role);
-}
-dashboard control
+admincontroller
 <?php
 
 require_once "../app/core/Controller.php";
 require_once "../app/core/Auth.php";
-require_once "../app/models/Form.php";
-require_once "../app/models/Submission.php";
-require_once "../app/models/User.php";
 
-class DashboardController extends Controller
+require_once "../app/models/Access.php";
+require_once "../app/models/Form.php";
+
+class AdminController extends Controller
 {
+    private $access;
     private $form;
-    private $submission;
-    private $user;
 
     public function __construct()
     {
         parent::__construct();
 
+        $this->requireRole("super_admin");
+
+        $this->access = new Access();
+
         $this->form = new Form();
-        $this->submission = new Submission();
-        $this->user = new User();
     }
 
-    // ===========================
-    // User Dashboard
-    // ===========================
-    public function userDashboard()
+    // ==========================
+    // Manage Form Access Page
+    // ==========================
+    public function manageAccess()
     {
-        $this->requireRole("user");
+        $users = $this->access->getUsers();
 
-        $user = Auth::user();
+        $selectedUser = "";
 
-        $assignedForms = $this->form->getAssignedForms($user['id']);
+        $assignedForms = [];
 
-        $submittedForms = $this->submission
-                               ->getUserSubmissions($user['id']);
+        $availableForms = [];
 
-        $this->smarty->assign("user",$user);
+        if(isset($_GET['user_id']))
+        {
+            $selectedUser = $_GET['user_id'];
+
+            $assignedForms =
+            $this->access->getUserForms($selectedUser);
+
+            $allForms =
+            $this->form->getForms();
+
+            $assignedIds =
+            array_column($assignedForms,'id');
+
+            foreach($allForms as $form)
+            {
+                if(!in_array($form['id'],$assignedIds))
+                {
+                    $availableForms[] = $form;
+                }
+            }
+        }
+
+        $this->smarty->assign(
+            "users",
+            $users
+        );
+
+        $this->smarty->assign(
+            "selectedUser",
+            $selectedUser
+        );
 
         $this->smarty->assign(
             "assignedForms",
@@ -114,135 +252,113 @@ class DashboardController extends Controller
         );
 
         $this->smarty->assign(
-            "submittedForms",
-            $submittedForms
-        );
-
-        $this->smarty->display("dashboard.tpl");
-    }
-
-    // ===========================
-    // Super Admin Dashboard
-    // ===========================
-    public function adminDashboard()
-    {
-        $this->requireRole("super_admin");
-
-        $user = Auth::user();
-
-        $users = $this->user->getAllUsers();
-
-        $forms = $this->form->getForms();
-
-        $submissions =
-        $this->submission->getAllSubmissions();
-
-        $this->smarty->assign("user",$user);
-
-        $this->smarty->assign("users",$users);
-
-        $this->smarty->assign("forms",$forms);
-
-        $this->smarty->assign(
-            "submissions",
-            $submissions
+            "availableForms",
+            $availableForms
         );
 
         $this->smarty->display(
-            "admin_dashboard.tpl"
+            "manage_access.tpl"
         );
     }
+
+    // ==========================
+    // Grant Access
+    // ==========================
+    public function grantAccess()
+    {
+        $userId = $_POST['user_id'];
+
+        $formId = $_POST['form_id'];
+
+        $admin = Auth::user();
+
+        if(
+            !$this->access
+                  ->hasAccess($userId,$formId)
+        )
+        {
+            $this->access->grantAccess(
+
+                $userId,
+
+                $formId,
+
+                $admin['id']
+
+            );
+        }
+
+        header(
+
+            "Location:index.php?action=manageAccess&user_id=".$userId
+
+        );
+
+        exit;
+    }
+
+    // ==========================
+    // Remove Access
+    // ==========================
+    public function removeAccess()
+    {
+        $userId = $_GET['user_id'];
+
+        $formId = $_GET['form_id'];
+
+        $this->access->removeAccess(
+
+            $userId,
+
+            $formId
+
+        );
+
+        header(
+
+            "Location:index.php?action=manageAccess&user_id=".$userId
+
+        );
+
+        exit;
+    }
+
 }
-user.php
-public function getAllUsers()
-{
-    $stmt = $this->conn->prepare(
-        "SELECT *
-         FROM users
-         WHERE role='user'
-         ORDER BY full_name"
-    );
+case "manageAccess":
 
-    $stmt->execute();
+    $controller =
+    new AdminController();
 
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-form.pho
-public function getForms()
-{
-    $stmt = $this->conn->prepare(
-        "SELECT *
-         FROM forms
-         ORDER BY form_name"
-    );
+    $controller->manageAccess();
 
-    $stmt->execute();
+    break;
 
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-public function getAssignedForms($userId)
-{
-    $stmt = $this->conn->prepare(
 
-        "SELECT
-            f.*
+case "grantAccess":
 
-        FROM form_access fa
+    $controller =
+    new AdminController();
 
-        INNER JOIN forms f
+    $controller->grantAccess();
 
-        ON f.id = fa.form_id
+    break;
 
-        WHERE fa.user_id=?"
 
-    );
+case "removeAccess":
 
-    $stmt->bind_param("i",$userId);
+    $controller =
+    new AdminController();
 
-    $stmt->execute();
+    $controller->removeAccess();
 
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-submission.php
-public function getUserSubmissions($userId)
-{
-    $stmt = $this->conn->prepare(
-
-        "SELECT *
-
-         FROM form_submissions
-
-         WHERE user_id=?"
-
-    );
-
-    $stmt->bind_param("i",$userId);
-
-    $stmt->execute();
-
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-public function getAllSubmissions()
-{
-    $stmt = $this->conn->prepare(
-
-        "SELECT *
-
-         FROM form_submissions"
-
-    );
-
-    $stmt->execute();
-
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-dashboard.html 
+    break;
+manage a ces .html
 <!DOCTYPE html>
 <html>
 
 <head>
 
-    <title>User Dashboard</title>
+    <title>Manage Form Access</title>
 
     <style>
 
@@ -254,13 +370,7 @@ dashboard.html
         }
 
         body{
-            background:#f4f4f4;
-        }
-
-        .header{
-            background:#007bff;
-            color:white;
-            padding:15px;
+            background:#f5f5f5;
         }
 
         .container{
@@ -268,60 +378,47 @@ dashboard.html
             margin:20px auto;
         }
 
-        .menu{
-            margin:20px 0;
+        h2{
+            margin-bottom:20px;
         }
 
-        .menu a{
-
-            text-decoration:none;
-            padding:10px 20px;
-            background:#007bff;
-            color:white;
-            margin-right:10px;
-            border-radius:5px;
-
-        }
-
-        .card{
-
+        .top{
             background:white;
-
             padding:20px;
-
-            margin-top:20px;
-
+            margin-bottom:20px;
             border-radius:5px;
-
-            box-shadow:0 0 5px #ccc;
-
         }
 
         table{
-
             width:100%;
-
             border-collapse:collapse;
-
-            margin-top:15px;
-
+            background:white;
+            margin-top:10px;
         }
 
         table th,
         table td{
-
             border:1px solid #ddd;
-
             padding:10px;
-
         }
 
         table th{
-
             background:#007bff;
-
             color:white;
+        }
 
+        select{
+            padding:8px;
+            width:300px;
+        }
+
+        button{
+            padding:8px 15px;
+            cursor:pointer;
+        }
+
+        .section{
+            margin-top:25px;
         }
 
     </style>
@@ -330,47 +427,57 @@ dashboard.html
 
 <body>
 
-<div class="header">
-
-<h2>
-
-Welcome {$user.name}
-
-</h2>
-
-</div>
-
 <div class="container">
 
-<div class="menu">
+<h2>Manage Form Access</h2>
 
-<a href="index.php?action=userDashboard">
+<form method="get" action="index.php">
 
-Dashboard
+<input
+type="hidden"
+name="action"
+value="manageAccess">
 
-</a>
+<select
+name="user_id"
+required>
 
-<a href="index.php?action=myForms">
+<option value="">
+Select User
+</option>
 
-My Forms
+{foreach $users as $user}
 
-</a>
+<option
+value="{$user.id}"
 
-<a href="index.php?action=mySubmissions">
+{if $selectedUser==$user.id}
 
-My Submissions
+selected
 
-</a>
+{/if}
 
-<a href="index.php?action=logout">
+>
 
-Logout
+{$user.full_name}
 
-</a>
+</option>
 
-</div>
+{/foreach}
 
-<div class="card">
+</select>
+
+<button type="submit">
+
+Load
+
+</button>
+
+</form>
+
+{if $selectedUser!=""}
+
+<div class="section">
 
 <h3>
 
@@ -408,9 +515,11 @@ Assigned Forms
 
 <td>
 
-<a href="index.php?action=showForm&form_id={$form.id}">
+<a
+href="index.php?action=removeAccess&user_id={$selectedUser}&form_id={$form.id}"
+onclick="return confirm('Remove access?')">
 
-Open
+Remove
 
 </a>
 
@@ -424,11 +533,11 @@ Open
 
 </div>
 
-<div class="card">
+<div class="section">
 
 <h3>
 
-Submitted Forms
+Available Forms
 
 </h3>
 
@@ -436,37 +545,54 @@ Submitted Forms
 
 <tr>
 
-<th>Submission ID</th>
+<th>ID</th>
 
-<th>Form ID</th>
+<th>Form Name</th>
 
 <th>Action</th>
 
 </tr>
 
-{foreach $submittedForms as $submission}
+{foreach $availableForms as $form}
 
 <tr>
 
 <td>
 
-{$submission.id}
+{$form.id}
 
 </td>
 
 <td>
 
-{$submission.form_id}
+{$form.form_name}
 
 </td>
 
 <td>
 
-<a href="index.php?action=edit&submission_id={$submission.id}&form_id={$submission.form_id}">
+<form
+method="post"
+action="index.php?action=grantAccess">
 
-Edit
+<input
+type="hidden"
+name="user_id"
+value="{$selectedUser}">
 
-</a>
+<input
+type="hidden"
+name="form_id"
+value="{$form.id}">
+
+<button
+type="submit">
+
+Grant
+
+</button>
+
+</form>
 
 </td>
 
@@ -477,6 +603,8 @@ Edit
 </table>
 
 </div>
+
+{/if}
 
 </div>
 
