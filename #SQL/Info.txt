@@ -1,88 +1,239 @@
-access.php
+app/models/med_form_access.php
 <?php
 
 require_once "../app/core/Model.php";
 
-class Access extends Model
+class MedFormAccess extends Model
 {
 
-    // Get All Users
-    public function getUsers()
+    /**
+     * --------------------------------------------------------
+     * Get All Users
+     * --------------------------------------------------------
+     */
+    public function getAllUsers()
     {
-        $stmt = $this->conn->prepare(
 
-            "SELECT
+        $strQuery = "
+
+            SELECT
+
                 id,
+
                 full_name,
+
                 email
 
-             FROM users
+            FROM users
 
-             WHERE role='user'
+            WHERE role='user'
 
-             ORDER BY full_name"
+            ORDER BY full_name
 
-        );
+        ";
 
-        $stmt->execute();
+        $objStatement =
+        $this->conn->prepare($strQuery);
 
-        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $objStatement->execute();
+
+        $arrAllUsers =
+        $objStatement
+        ->get_result()
+        ->fetch_all(MYSQLI_ASSOC);
+
+        return $arrAllUsers;
+
     }
 
-    // Get All Forms
-    public function getForms()
+    /**
+     * --------------------------------------------------------
+     * Get All Forms
+     * --------------------------------------------------------
+     */
+    public function getAllForms()
     {
-        $stmt = $this->conn->prepare(
 
-            "SELECT *
+        $strQuery = "
 
-             FROM forms
+            SELECT
 
-             ORDER BY form_name"
+                id,
 
-        );
+                form_name
 
-        $stmt->execute();
+            FROM forms
 
-        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            ORDER BY form_name
+
+        ";
+
+        $objStatement =
+        $this->conn->prepare($strQuery);
+
+        $objStatement->execute();
+
+        $arrAllForms =
+        $objStatement
+        ->get_result()
+        ->fetch_all(MYSQLI_ASSOC);
+
+        return $arrAllForms;
+
     }
 
-    // Forms Assigned To User
-    public function getUserForms($userId)
+    /**
+     * --------------------------------------------------------
+     * Manage Form Access List
+     * --------------------------------------------------------
+     *
+     * Returns
+     *
+     * User
+     * Form
+     * Status
+     * Grant/Revoke
+     *
+     * --------------------------------------------------------
+     */
+
+    public function getAccessList()
     {
-        $stmt = $this->conn->prepare(
 
-            "SELECT
+        $strQuery = "
 
-                f.*
+            SELECT
 
-             FROM form_access fa
+                u.id AS user_id,
 
-             INNER JOIN forms f
+                u.full_name,
 
-             ON f.id = fa.form_id
+                u.email,
 
-             WHERE fa.user_id=?"
+                f.id AS form_id,
 
-        );
+                f.form_name,
 
-        $stmt->bind_param("i",$userId);
+                fa.id AS access_id,
 
-        $stmt->execute();
+                CASE
 
-        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                    WHEN fa.id IS NULL
+
+                    THEN 'Not Granted'
+
+                    ELSE 'Granted'
+
+                END AS access_status
+
+            FROM users u
+
+            CROSS JOIN forms f
+
+            LEFT JOIN form_access fa
+
+                ON fa.user_id = u.id
+
+               AND fa.form_id = f.id
+
+            WHERE u.role='user'
+
+            ORDER BY
+
+                u.full_name,
+
+                f.form_name
+
+        ";
+
+        $objStatement =
+        $this->conn->prepare($strQuery);
+
+        $objStatement->execute();
+
+        $arrAccessList =
+        $objStatement
+        ->get_result()
+        ->fetch_all(MYSQLI_ASSOC);
+
+        return $arrAccessList;
+
     }
-
-    // Grant Form Access
-    public function grantAccess(
-        $userId,
-        $formId,
-        $grantedBy
+/**
+     * --------------------------------------------------------
+     * Check User Form Access
+     * --------------------------------------------------------
+     */
+    public function hasAccess(
+        $intUserId,
+        $intFormId
     )
     {
-        $stmt = $this->conn->prepare(
 
-            "INSERT INTO form_access
+        $strQuery = "
+
+            SELECT
+
+                id
+
+            FROM form_access
+
+            WHERE user_id = ?
+
+            AND form_id = ?
+
+        ";
+
+        $objStatement =
+        $this->conn->prepare($strQuery);
+
+        $objStatement->bind_param(
+
+            "ii",
+
+            $intUserId,
+
+            $intFormId
+
+        );
+
+        $objStatement->execute();
+
+        $objResult =
+        $objStatement->get_result();
+
+        $blStatus =
+        ($objResult->num_rows > 0);
+
+        return $blStatus;
+
+    }
+
+    /**
+     * --------------------------------------------------------
+     * Grant Form Access
+     * --------------------------------------------------------
+     */
+    public function grantAccess(
+        $intUserId,
+        $intFormId,
+        $intGrantedBy
+    )
+    {
+
+        if(
+            $this->hasAccess(
+                $intUserId,
+                $intFormId
+            )
+        )
+        {
+            return false;
+        }
+
+        $strQuery = "
+
+            INSERT INTO form_access
             (
                 user_id,
                 form_id,
@@ -91,104 +242,90 @@ class Access extends Model
 
             VALUES
             (
-                ?,?,?
-            )"
+                ?, ?, ?
+            )
 
-        );
+        ";
 
-        $stmt->bind_param(
+        $objStatement =
+        $this->conn->prepare($strQuery);
+
+        $objStatement->bind_param(
 
             "iii",
 
-            $userId,
+            $intUserId,
 
-            $formId,
+            $intFormId,
 
-            $grantedBy
+            $intGrantedBy
 
         );
 
-        return $stmt->execute();
+        $blStatus =
+        $objStatement->execute();
+
+        return $blStatus;
+
     }
 
-    // Remove Form Access
-    public function removeAccess(
-        $userId,
-        $formId
+    /**
+     * --------------------------------------------------------
+     * Revoke Form Access
+     * --------------------------------------------------------
+     */
+    public function revokeAccess(
+        $intUserId,
+        $intFormId
     )
     {
-        $stmt = $this->conn->prepare(
 
-            "DELETE FROM form_access
+        $strQuery = "
 
-             WHERE user_id=?
+            DELETE
 
-             AND form_id=?"
+            FROM form_access
 
-        );
+            WHERE user_id = ?
 
-        $stmt->bind_param(
+            AND form_id = ?
+
+        ";
+
+        $objStatement =
+        $this->conn->prepare($strQuery);
+
+        $objStatement->bind_param(
 
             "ii",
 
-            $userId,
+            $intUserId,
 
-            $formId
-
-        );
-
-        return $stmt->execute();
-    }
-
-    // Check if access already exists
-    public function hasAccess(
-        $userId,
-        $formId
-    )
-    {
-        $stmt = $this->conn->prepare(
-
-            "SELECT id
-
-             FROM form_access
-
-             WHERE user_id=?
-
-             AND form_id=?"
+            $intFormId
 
         );
 
-        $stmt->bind_param(
+        $blStatus =
+        $objStatement->execute();
 
-            "ii",
+        return $blStatus;
 
-            $userId,
-
-            $formId
-
-        );
-
-        $stmt->execute();
-
-        return $stmt
-               ->get_result()
-               ->num_rows > 0;
     }
 
 }
-admincontroller
+
+app/controllers/med_admin_controller.php
+
 <?php
 
 require_once "../app/core/Controller.php";
 require_once "../app/core/Auth.php";
 
-require_once "../app/models/Access.php";
-require_once "../app/models/Form.php";
+require_once "../app/models/med_form_access.php";
 
-class AdminController extends Controller
+class MedAdminController extends Controller
 {
-    private $access;
-    private $form;
+    private $objMedFormAccess;
 
     public function __construct()
     {
@@ -196,169 +333,175 @@ class AdminController extends Controller
 
         $this->requireRole("super_admin");
 
-        $this->access = new Access();
-
-        $this->form = new Form();
+        $this->objMedFormAccess =
+        new MedFormAccess();
     }
 
-    // ==========================
-    // Manage Form Access Page
-    // ==========================
-    public function manageAccess()
+    /**
+     * ------------------------------------------------
+     * Manage Form Access
+     * ------------------------------------------------
+     */
+    public function manageFormAccess()
     {
-        $users = $this->access->getUsers();
+        $arrAllUsers =
+        $this->objMedFormAccess
+             ->getAllUsers();
 
-        $selectedUser = "";
+        $arrAllForms =
+        $this->objMedFormAccess
+             ->getAllForms();
 
-        $assignedForms = [];
-
-        $availableForms = [];
-
-        if(isset($_GET['user_id']))
-        {
-            $selectedUser = $_GET['user_id'];
-
-            $assignedForms =
-            $this->access->getUserForms($selectedUser);
-
-            $allForms =
-            $this->form->getForms();
-
-            $assignedIds =
-            array_column($assignedForms,'id');
-
-            foreach($allForms as $form)
-            {
-                if(!in_array($form['id'],$assignedIds))
-                {
-                    $availableForms[] = $form;
-                }
-            }
-        }
+        $arrAccessList =
+        $this->objMedFormAccess
+             ->getAccessList();
 
         $this->smarty->assign(
-            "users",
-            $users
+            "arrAllUsers",
+            $arrAllUsers
         );
 
         $this->smarty->assign(
-            "selectedUser",
-            $selectedUser
+            "arrAllForms",
+            $arrAllForms
         );
 
         $this->smarty->assign(
-            "assignedForms",
-            $assignedForms
-        );
-
-        $this->smarty->assign(
-            "availableForms",
-            $availableForms
+            "arrAccessList",
+            $arrAccessList
         );
 
         $this->smarty->display(
-            "manage_access.tpl"
+            "manage_form_access.tpl"
         );
     }
 
-    // ==========================
-    // Grant Access
-    // ==========================
-    public function grantAccess()
+    /**
+     * ------------------------------------------------
+     * Grant Form Access
+     * ------------------------------------------------
+     */
+    public function grantFormAccess()
     {
-        $userId = $_POST['user_id'];
-
-        $formId = $_POST['form_id'];
-
-        $admin = Auth::user();
-
-        if(
-            !$this->access
-                  ->hasAccess($userId,$formId)
-        )
+        if($_SERVER['REQUEST_METHOD']!="POST")
         {
-            $this->access->grantAccess(
-
-                $userId,
-
-                $formId,
-
-                $admin['id']
-
+            header(
+                "Location:index.php?action=manageFormAccess"
             );
+
+            exit;
         }
 
+        $intUserId =
+        (int)$_POST['user_id'];
+
+        $intFormId =
+        (int)$_POST['form_id'];
+
+        $arrLoggedInUser =
+        Auth::user();
+
+        $intGrantedBy =
+        $arrLoggedInUser['id'];
+
+        $blStatus =
+        $this->objMedFormAccess
+             ->grantAccess(
+                $intUserId,
+                $intFormId,
+                $intGrantedBy
+             );
+
         header(
-
-            "Location:index.php?action=manageAccess&user_id=".$userId
-
+            "Location:index.php?action=manageFormAccess"
         );
 
         exit;
     }
-
-    // ==========================
-    // Remove Access
-    // ==========================
-    public function removeAccess()
+/**
+     * ------------------------------------------------
+     * Revoke Form Access
+     * ------------------------------------------------
+     */
+    public function revokeFormAccess()
     {
-        $userId = $_GET['user_id'];
 
-        $formId = $_GET['form_id'];
+        if($_SERVER['REQUEST_METHOD']!="POST")
+        {
+            header(
+                "Location:index.php?action=manageFormAccess"
+            );
 
-        $this->access->removeAccess(
+            exit;
+        }
 
-            $userId,
+        $intUserId =
+        (int)$_POST['user_id'];
 
-            $formId
+        $intFormId =
+        (int)$_POST['form_id'];
 
-        );
+        $blStatus =
+        $this->objMedFormAccess
+             ->revokeAccess(
+                $intUserId,
+                $intFormId
+             );
 
         header(
-
-            "Location:index.php?action=manageAccess&user_id=".$userId
-
+            "Location:index.php?action=manageFormAccess"
         );
 
         exit;
+
     }
 
 }
-case "manageAccess":
+route 
+case "manageFormAccess":
 
-    $controller =
-    new AdminController();
+    $objMedAdminController =
+    new MedAdminController();
 
-    $controller->manageAccess();
+    $objMedAdminController
+    ->manageFormAccess();
 
-    break;
-
-
-case "grantAccess":
-
-    $controller =
-    new AdminController();
-
-    $controller->grantAccess();
-
-    break;
+break;
 
 
-case "removeAccess":
+case "grantFormAccess":
 
-    $controller =
-    new AdminController();
+    $objMedAdminController =
+    new MedAdminController();
 
-    $controller->removeAccess();
+    $objMedAdminController
+    ->grantFormAccess();
 
-    break;
-manage a ces .html
+break;
+
+
+case "revokeFormAccess":
+
+    $objMedAdminController =
+    new MedAdminController();
+
+    $objMedAdminController
+    ->revokeFormAccess();
+
+break;
+
+app/views/templates/manage_form_access.tpl
 <!DOCTYPE html>
+
 <html>
 
 <head>
 
-    <title>Manage Form Access</title>
+    <title>
+
+        Manage Form Access
+
+    </title>
 
     <style>
 
@@ -370,55 +513,142 @@ manage a ces .html
         }
 
         body{
+
             background:#f5f5f5;
+
         }
 
         .container{
-            width:90%;
+
+            width:95%;
+
             margin:20px auto;
+
         }
 
-        h2{
+        .page-title{
+
             margin-bottom:20px;
+
         }
 
-        .top{
+        .filter-section{
+
             background:white;
+
             padding:20px;
-            margin-bottom:20px;
+
             border-radius:5px;
+
+            margin-bottom:20px;
+
+            display:flex;
+
+            gap:20px;
+
+            align-items:end;
+
+        }
+
+        .form-group{
+
+            display:flex;
+
+            flex-direction:column;
+
+        }
+
+        label{
+
+            margin-bottom:8px;
+
+            font-weight:bold;
+
+        }
+
+        select{
+
+            width:250px;
+
+            padding:10px;
+
+        }
+
+        button{
+
+            padding:10px 20px;
+
+            cursor:pointer;
+
         }
 
         table{
+
             width:100%;
+
             border-collapse:collapse;
+
             background:white;
-            margin-top:10px;
+
         }
 
         table th,
         table td{
+
             border:1px solid #ddd;
-            padding:10px;
+
+            padding:12px;
+
+            text-align:left;
+
         }
 
         table th{
-            background:#007bff;
+
+            background:#1976d2;
+
             color:white;
+
         }
 
-        select{
-            padding:8px;
-            width:300px;
-        }
+        .grant{
 
-        button{
+            background:#28a745;
+
+            color:white;
+
+            border:none;
+
             padding:8px 15px;
-            cursor:pointer;
+
         }
 
-        .section{
-            margin-top:25px;
+        .revoke{
+
+            background:#dc3545;
+
+            color:white;
+
+            border:none;
+
+            padding:8px 15px;
+
+        }
+
+        .granted{
+
+            color:green;
+
+            font-weight:bold;
+
+        }
+
+        .not-granted{
+
+            color:red;
+
+            font-weight:bold;
+
         }
 
     </style>
@@ -429,37 +659,39 @@ manage a ces .html
 
 <div class="container">
 
-<h2>Manage Form Access</h2>
+<h2 class="page-title">
 
-<form method="get" action="index.php">
+Manage Form Access
 
-<input
-type="hidden"
-name="action"
-value="manageAccess">
+</h2>
+
+<form>
+
+<div class="filter-section">
+
+<div class="form-group">
+
+<label>
+
+Users
+
+</label>
 
 <select
-name="user_id"
-required>
+name="user_id">
 
-<option value="">
-Select User
+<option value="0">
+
+All Users
+
 </option>
 
-{foreach $users as $user}
+{foreach $arrAllUsers as $arrUser}
 
 <option
-value="{$user.id}"
+value="{$arrUser.id}">
 
-{if $selectedUser==$user.id}
-
-selected
-
-{/if}
-
->
-
-{$user.full_name}
+{$arrUser.full_name}
 
 </option>
 
@@ -467,126 +699,214 @@ selected
 
 </select>
 
+</div>
+
+<div class="form-group">
+
+<label>
+
+Forms
+
+</label>
+
+<select
+name="form_id">
+
+<option value="0">
+
+All Forms
+
+</option>
+
+{foreach $arrAllForms as $arrForm}
+
+<option
+value="{$arrForm.id}">
+
+{$arrForm.form_name}
+
+</option>
+
+{/foreach}
+
+</select>
+
+</div>
+
+<div class="form-group">
+
+<label>
+
+Access Status
+
+</label>
+
+<select
+name="access_status">
+
+<option value="all">
+
+All Access
+
+</option>
+
+<option value="Granted">
+
+Granted
+
+</option>
+
+<option value="Not Granted">
+
+Not Granted
+
+</option>
+
+</select>
+
+</div>
+
+<div>
+
 <button type="submit">
 
-Load
+Search
+
+</button>
+
+</div>
+
+</div>
+
+</form>
+
+<table>
+
+<tr>
+
+<th>
+
+User
+
+</th>
+
+<th>
+
+Email
+
+</th>
+
+<th>
+
+Form
+
+</th>
+
+<th>
+
+Status
+
+</th>
+
+<th>
+
+Action
+
+</th>
+
+</tr>
+
+{foreach $arrAccessList as $arrAccess}
+
+<tr>
+
+<td>
+
+{$arrAccess.full_name}
+
+</td>
+
+<td>
+
+{$arrAccess.email}
+
+</td>
+
+<td>
+
+{$arrAccess.form_name}
+
+</td>
+
+<td>
+
+{if $arrAccess.access_status=="Granted"}
+
+<span class="granted">
+
+Granted
+
+</span>
+
+{else}
+
+<span class="not-granted">
+
+Not Granted
+
+</span>
+
+{/if}
+
+</td>
+
+<td>
+{if $arrAccess.access_status=="Granted"}
+
+<form
+method="post"
+action="index.php?action=revokeFormAccess">
+
+<input
+type="hidden"
+name="user_id"
+value="{$arrAccess.user_id}">
+
+<input
+type="hidden"
+name="form_id"
+value="{$arrAccess.form_id}">
+
+<button
+type="submit"
+class="revoke"
+onclick="return confirm('Are you sure you want to revoke this form access?')">
+
+Revoke
 
 </button>
 
 </form>
 
-{if $selectedUser!=""}
-
-<div class="section">
-
-<h3>
-
-Assigned Forms
-
-</h3>
-
-<table>
-
-<tr>
-
-<th>ID</th>
-
-<th>Form Name</th>
-
-<th>Action</th>
-
-</tr>
-
-{foreach $assignedForms as $form}
-
-<tr>
-
-<td>
-
-{$form.id}
-
-</td>
-
-<td>
-
-{$form.form_name}
-
-</td>
-
-<td>
-
-<a
-href="index.php?action=removeAccess&user_id={$selectedUser}&form_id={$form.id}"
-onclick="return confirm('Remove access?')">
-
-Remove
-
-</a>
-
-</td>
-
-</tr>
-
-{/foreach}
-
-</table>
-
-</div>
-
-<div class="section">
-
-<h3>
-
-Available Forms
-
-</h3>
-
-<table>
-
-<tr>
-
-<th>ID</th>
-
-<th>Form Name</th>
-
-<th>Action</th>
-
-</tr>
-
-{foreach $availableForms as $form}
-
-<tr>
-
-<td>
-
-{$form.id}
-
-</td>
-
-<td>
-
-{$form.form_name}
-
-</td>
-
-<td>
+{else}
 
 <form
 method="post"
-action="index.php?action=grantAccess">
+action="index.php?action=grantFormAccess">
 
 <input
 type="hidden"
 name="user_id"
-value="{$selectedUser}">
+value="{$arrAccess.user_id}">
 
 <input
 type="hidden"
 name="form_id"
-value="{$form.id}">
+value="{$arrAccess.form_id}">
 
 <button
-type="submit">
+type="submit"
+class="grant">
 
 Grant
 
@@ -594,6 +914,8 @@ Grant
 
 </form>
 
+{/if}
+
 </td>
 
 </tr>
@@ -601,218 +923,6 @@ Grant
 {/foreach}
 
 </table>
-
-</div>
-
-{/if}
-
-</div>
-
-</body>
-
-</html>
-admin 
-<!DOCTYPE html>
-<html>
-
-<head>
-
-    <title>Super Admin Dashboard</title>
-
-    <style>
-
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-            font-family:Arial;
-        }
-
-        body{
-            background:#f4f4f4;
-        }
-
-        .header{
-            background:#343a40;
-            color:white;
-            padding:15px;
-        }
-
-        .container{
-            width:90%;
-            margin:20px auto;
-        }
-
-        .menu{
-            margin-bottom:20px;
-        }
-
-        .menu a{
-            text-decoration:none;
-            background:#343a40;
-            color:white;
-            padding:10px 18px;
-            margin-right:10px;
-            border-radius:5px;
-        }
-
-        .card{
-            background:white;
-            margin-top:20px;
-            padding:20px;
-            border-radius:5px;
-            box-shadow:0 0 5px #ccc;
-        }
-
-        table{
-            width:100%;
-            border-collapse:collapse;
-            margin-top:15px;
-        }
-
-        table th,
-        table td{
-            border:1px solid #ddd;
-            padding:10px;
-            text-align:left;
-        }
-
-        table th{
-            background:#343a40;
-            color:white;
-        }
-
-    </style>
-
-</head>
-
-<body>
-
-<div class="header">
-
-<h2>
-
-Welcome {$user.name}
-
-</h2>
-
-</div>
-
-<div class="container">
-
-<div class="menu">
-
-<a href="index.php?action=adminDashboard">
-Dashboard
-</a>
-
-<a href="index.php?action=manageAccess">
-Manage Form Access
-</a>
-
-<a href="index.php?action=logout">
-Logout
-</a>
-
-</div>
-
-<div class="card">
-
-<h3>Users</h3>
-
-<table>
-
-<tr>
-
-<th>ID</th>
-
-<th>Name</th>
-
-<th>Email</th>
-
-</tr>
-
-{foreach $users as $u}
-
-<tr>
-
-<td>{$u.id}</td>
-
-<td>{$u.full_name}</td>
-
-<td>{$u.email}</td>
-
-</tr>
-
-{/foreach}
-
-</table>
-
-</div>
-
-<div class="card">
-
-<h3>Forms</h3>
-
-<table>
-
-<tr>
-
-<th>ID</th>
-
-<th>Form Name</th>
-
-</tr>
-
-{foreach $forms as $form}
-
-<tr>
-
-<td>{$form.id}</td>
-
-<td>{$form.form_name}</td>
-
-</tr>
-
-{/foreach}
-
-</table>
-
-</div>
-
-<div class="card">
-
-<h3>Submitted Forms</h3>
-
-<table>
-
-<tr>
-
-<th>Submission ID</th>
-
-<th>Form ID</th>
-
-<th>User ID</th>
-
-</tr>
-
-{foreach $submissions as $submission}
-
-<tr>
-
-<td>{$submission.id}</td>
-
-<td>{$submission.form_id}</td>
-
-<td>{$submission.user_id}</td>
-
-</tr>
-
-{/foreach}
-
-</table>
-
-</div>
 
 </div>
 
