@@ -1,931 +1,293 @@
-app/models/med_form_access.php
+app/models/MedTemplate.php
+
+
 <?php
 
-require_once "../app/core/Model.php";
-
-class MedFormAccess extends Model
+class MedTemplate
 {
+    private PDO $objDatabase;
 
-    /**
-     * --------------------------------------------------------
-     * Get All Users
-     * --------------------------------------------------------
-     */
-    public function getAllUsers()
+    public function __construct(PDO $objDatabase)
     {
-
-        $strQuery = "
-
-            SELECT
-
-                id,
-
-                full_name,
-
-                email
-
-            FROM users
-
-            WHERE role='user'
-
-            ORDER BY full_name
-
-        ";
-
-        $objStatement =
-        $this->conn->prepare($strQuery);
-
-        $objStatement->execute();
-
-        $arrAllUsers =
-        $objStatement
-        ->get_result()
-        ->fetch_all(MYSQLI_ASSOC);
-
-        return $arrAllUsers;
-
+        $this->objDatabase = $objDatabase;
     }
 
-    /**
-     * --------------------------------------------------------
-     * Get All Forms
-     * --------------------------------------------------------
-     */
-    public function getAllForms()
+    /*
+    |--------------------------------------------------------------------------
+    | Save Template
+    |--------------------------------------------------------------------------
+    */
+
+    public function saveTemplate(array $arrTemplateData): bool
     {
-
         $strQuery = "
-
-            SELECT
-
-                id,
-
-                form_name
-
-            FROM forms
-
-            ORDER BY form_name
-
-        ";
-
-        $objStatement =
-        $this->conn->prepare($strQuery);
-
-        $objStatement->execute();
-
-        $arrAllForms =
-        $objStatement
-        ->get_result()
-        ->fetch_all(MYSQLI_ASSOC);
-
-        return $arrAllForms;
-
-    }
-
-    /**
-     * --------------------------------------------------------
-     * Manage Form Access List
-     * --------------------------------------------------------
-     *
-     * Returns
-     *
-     * User
-     * Form
-     * Status
-     * Grant/Revoke
-     *
-     * --------------------------------------------------------
-     */
-
-    public function getAccessList()
-    {
-
-        $strQuery = "
-
-            SELECT
-
-                u.id AS user_id,
-
-                u.full_name,
-
-                u.email,
-
-                f.id AS form_id,
-
-                f.form_name,
-
-                fa.id AS access_id,
-
-                CASE
-
-                    WHEN fa.id IS NULL
-
-                    THEN 'Not Granted'
-
-                    ELSE 'Granted'
-
-                END AS access_status
-
-            FROM users u
-
-            CROSS JOIN forms f
-
-            LEFT JOIN form_access fa
-
-                ON fa.user_id = u.id
-
-               AND fa.form_id = f.id
-
-            WHERE u.role='user'
-
-            ORDER BY
-
-                u.full_name,
-
-                f.form_name
-
-        ";
-
-        $objStatement =
-        $this->conn->prepare($strQuery);
-
-        $objStatement->execute();
-
-        $arrAccessList =
-        $objStatement
-        ->get_result()
-        ->fetch_all(MYSQLI_ASSOC);
-
-        return $arrAccessList;
-
-    }
-/**
-     * --------------------------------------------------------
-     * Check User Form Access
-     * --------------------------------------------------------
-     */
-    public function hasAccess(
-        $intUserId,
-        $intFormId
-    )
-    {
-
-        $strQuery = "
-
-            SELECT
-
-                id
-
-            FROM form_access
-
-            WHERE user_id = ?
-
-            AND form_id = ?
-
-        ";
-
-        $objStatement =
-        $this->conn->prepare($strQuery);
-
-        $objStatement->bind_param(
-
-            "ii",
-
-            $intUserId,
-
-            $intFormId
-
-        );
-
-        $objStatement->execute();
-
-        $objResult =
-        $objStatement->get_result();
-
-        $blStatus =
-        ($objResult->num_rows > 0);
-
-        return $blStatus;
-
-    }
-
-    /**
-     * --------------------------------------------------------
-     * Grant Form Access
-     * --------------------------------------------------------
-     */
-    public function grantAccess(
-        $intUserId,
-        $intFormId,
-        $intGrantedBy
-    )
-    {
-
-        if(
-            $this->hasAccess(
-                $intUserId,
-                $intFormId
-            )
-        )
-        {
-            return false;
-        }
-
-        $strQuery = "
-
-            INSERT INTO form_access
+            INSERT INTO templates
             (
-                user_id,
-                form_id,
-                granted_by
+                title,
+                subject,
+                description,
+                created_by
             )
-
             VALUES
             (
-                ?, ?, ?
+                :title,
+                :subject,
+                :description,
+                :created_by
             )
-
         ";
 
-        $objStatement =
-        $this->conn->prepare($strQuery);
+        $objStatement = $this->objDatabase->prepare($strQuery);
 
-        $objStatement->bind_param(
-
-            "iii",
-
-            $intUserId,
-
-            $intFormId,
-
-            $intGrantedBy
-
-        );
-
-        $blStatus =
-        $objStatement->execute();
-
-        return $blStatus;
-
+        return $objStatement->execute([
+            ':title'       => $arrTemplateData['title'],
+            ':subject'     => $arrTemplateData['subject'],
+            ':description' => $arrTemplateData['description'],
+            ':created_by'  => $arrTemplateData['created_by']
+        ]);
     }
 
-    /**
-     * --------------------------------------------------------
-     * Revoke Form Access
-     * --------------------------------------------------------
-     */
-    public function revokeAccess(
-        $intUserId,
-        $intFormId
-    )
+    /*
+    |--------------------------------------------------------------------------
+    | Get All Templates
+    |--------------------------------------------------------------------------
+    */
+
+    public function getAllTemplates(): array
     {
-
         $strQuery = "
-
-            DELETE
-
-            FROM form_access
-
-            WHERE user_id = ?
-
-            AND form_id = ?
-
+            SELECT
+                id,
+                title,
+                subject
+            FROM templates
+            ORDER BY id DESC
         ";
 
-        $objStatement =
-        $this->conn->prepare($strQuery);
+        $objStatement = $this->objDatabase->prepare($strQuery);
 
-        $objStatement->bind_param(
-
-            "ii",
-
-            $intUserId,
-
-            $intFormId
-
-        );
-
-        $blStatus =
         $objStatement->execute();
 
-        return $blStatus;
-
+        return $objStatement->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Get Template By ID
+    |--------------------------------------------------------------------------
+    */
+
+    public function getTemplateById(int $intTemplateId): array|false
+    {
+        $strQuery = "
+            SELECT
+                *
+            FROM templates
+            WHERE id = :id
+        ";
+
+        $objStatement = $this->objDatabase->prepare($strQuery);
+
+        $objStatement->execute([
+            ':id' => $intTemplateId
+        ]);
+
+        return $objStatement->fetch(PDO::FETCH_ASSOC);
+    }
 }
-
-app/controllers/med_admin_controller.php
-
+app/models/MedGeneratedTemplate.php
 <?php
 
-require_once "../app/core/Controller.php";
-require_once "../app/core/Auth.php";
-
-require_once "../app/models/med_form_access.php";
-
-class MedAdminController extends Controller
+class MedGeneratedTemplate
 {
-    private $objMedFormAccess;
+    private PDO $objDatabase;
+
+    public function __construct(PDO $objDatabase)
+    {
+        $this->objDatabase = $objDatabase;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Save Generated Template
+    |--------------------------------------------------------------------------
+    */
+
+    public function saveGeneratedTemplate(array $arrGeneratedTemplateData): bool
+    {
+        $strQuery = "
+            INSERT INTO generated_templates
+            (
+                template_id,
+                user_id,
+                title,
+                subject,
+                generated_html
+            )
+            VALUES
+            (
+                :template_id,
+                :user_id,
+                :title,
+                :subject,
+                :generated_html
+            )
+        ";
+
+        $objStatement = $this->objDatabase->prepare($strQuery);
+
+        return $objStatement->execute([
+            ':template_id'   => $arrGeneratedTemplateData['template_id'],
+            ':user_id'       => $arrGeneratedTemplateData['user_id'],
+            ':title'         => $arrGeneratedTemplateData['title'],
+            ':subject'       => $arrGeneratedTemplateData['subject'],
+            ':generated_html'=> $arrGeneratedTemplateData['generated_html']
+        ]);
+    }
+}
+app/controllers/TemplateController.php
+<?php
+
+class TemplateController extends Controller
+{
+    private MedTemplate $objMedTemplate;
+    private MedGeneratedTemplate $objMedGeneratedTemplate;
 
     public function __construct()
     {
         parent::__construct();
 
-        $this->requireRole("super_admin");
+        $this->objMedTemplate = new MedTemplate($this->objDatabase);
 
-        $this->objMedFormAccess =
-        new MedFormAccess();
+        $this->objMedGeneratedTemplate = new MedGeneratedTemplate($this->objDatabase);
     }
 
-    /**
-     * ------------------------------------------------
-     * Manage Form Access
-     * ------------------------------------------------
-     */
-    public function manageFormAccess()
+    /*
+    |--------------------------------------------------------------------------
+    | Admin : Open Create Template Page
+    |--------------------------------------------------------------------------
+    */
+
+    public function create()
     {
-        $arrAllUsers =
-        $this->objMedFormAccess
-             ->getAllUsers();
-
-        $arrAllForms =
-        $this->objMedFormAccess
-             ->getAllForms();
-
-        $arrAccessList =
-        $this->objMedFormAccess
-             ->getAccessList();
-
-        $this->smarty->assign(
-            "arrAllUsers",
-            $arrAllUsers
-        );
-
-        $this->smarty->assign(
-            "arrAllForms",
-            $arrAllForms
-        );
-
-        $this->smarty->assign(
-            "arrAccessList",
-            $arrAccessList
-        );
-
-        $this->smarty->display(
-            "manage_form_access.tpl"
-        );
+        $this->smarty->display('admin/template_create.tpl');
     }
 
-    /**
-     * ------------------------------------------------
-     * Grant Form Access
-     * ------------------------------------------------
-     */
-    public function grantFormAccess()
-    {
-        if($_SERVER['REQUEST_METHOD']!="POST")
-        {
-            header(
-                "Location:index.php?action=manageFormAccess"
-            );
+    /*
+    |--------------------------------------------------------------------------
+    | Admin : Save Template
+    |--------------------------------------------------------------------------
+    */
 
-            exit;
-        }
-
-        $intUserId =
-        (int)$_POST['user_id'];
-
-        $intFormId =
-        (int)$_POST['form_id'];
-
-        $arrLoggedInUser =
-        Auth::user();
-
-        $intGrantedBy =
-        $arrLoggedInUser['id'];
-
-        $blStatus =
-        $this->objMedFormAccess
-             ->grantAccess(
-                $intUserId,
-                $intFormId,
-                $intGrantedBy
-             );
-
-        header(
-            "Location:index.php?action=manageFormAccess"
-        );
-
-        exit;
-    }
-/**
-     * ------------------------------------------------
-     * Revoke Form Access
-     * ------------------------------------------------
-     */
-    public function revokeFormAccess()
+    public function save()
     {
 
-        if($_SERVER['REQUEST_METHOD']!="POST")
-        {
-            header(
-                "Location:index.php?action=manageFormAccess"
-            );
+    }
 
-            exit;
-        }
+    /*
+    |--------------------------------------------------------------------------
+    | User : Open Template
+    |--------------------------------------------------------------------------
+    */
 
-        $intUserId =
-        (int)$_POST['user_id'];
-
-        $intFormId =
-        (int)$_POST['form_id'];
-
-        $blStatus =
-        $this->objMedFormAccess
-             ->revokeAccess(
-                $intUserId,
-                $intFormId
-             );
-
-        header(
-            "Location:index.php?action=manageFormAccess"
-        );
-
-        exit;
+    public function useTemplate()
+    {
 
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | User : Generate Final HTML
+    |--------------------------------------------------------------------------
+    */
+
+    public function generate()
+    {
+
+    }
 }
-route 
-case "manageFormAccess":
+public function save()
+{
+    if ($_SERVER['REQUEST_METHOD'] != 'POST') {
+        header("Location: index.php?controller=Template&action=create");
+        exit;
+    }
 
-    $objMedAdminController =
-    new MedAdminController();
+    $arrTemplateData = [];
 
-    $objMedAdminController
-    ->manageFormAccess();
+    $arrTemplateData['title'] = trim($_POST['title']);
+    $arrTemplateData['subject'] = trim($_POST['subject']);
+    $arrTemplateData['description'] = $_POST['description'];
+    $arrTemplateData['created_by'] = $_SESSION['user_id'];
 
-break;
+    if (
+        empty($arrTemplateData['title']) ||
+        empty($arrTemplateData['subject']) ||
+        empty($arrTemplateData['description'])
+    ) {
+        $_SESSION['error'] = "All fields are required.";
 
+        header("Location: index.php?controller=Template&action=create");
+        exit;
+    }
 
-case "grantFormAccess":
+    $blnResult = $this->objMedTemplate->saveTemplate($arrTemplateData);
 
-    $objMedAdminController =
-    new MedAdminController();
+    if ($blnResult) {
 
-    $objMedAdminController
-    ->grantFormAccess();
+        $_SESSION['success'] = "Template created successfully.";
 
-break;
+    } else {
 
+        $_SESSION['error'] = "Unable to save template.";
 
-case "revokeFormAccess":
+    }
 
-    $objMedAdminController =
-    new MedAdminController();
+    header("Location: index.php?controller=Template&action=create");
+    exit;
+}
+app/views/admin/template_create.tpl
 
-    $objMedAdminController
-    ->revokeFormAccess();
+tmplemte.js
+document.addEventListener("DOMContentLoaded", function () {
 
-break;
+    tinymce.init({
 
-app/views/templates/manage_form_access.tpl
-<!DOCTYPE html>
+        selector: "#description",
 
-<html>
+        height: 500,
 
-<head>
+        menubar: true,
 
-    <title>
+        plugins: [
+            "lists",
+            "link",
+            "image",
+            "table",
+            "code",
+            "wordcount"
+        ],
 
-        Manage Form Access
+        toolbar:
+            "undo redo | " +
+            "bold italic underline | " +
+            "alignleft aligncenter alignright alignjustify | " +
+            "bullist numlist | " +
+            "link image table | " +
+            "code"
 
-    </title>
+    });
 
-    <style>
+    document.querySelector("form").addEventListener("submit", function () {
 
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-            font-family:Arial;
-        }
+        tinymce.triggerSave();
 
-        body{
+    });
 
-            background:#f5f5f5;
+});
 
-        }
 
-        .container{
-
-            width:95%;
-
-            margin:20px auto;
-
-        }
-
-        .page-title{
-
-            margin-bottom:20px;
-
-        }
-
-        .filter-section{
-
-            background:white;
-
-            padding:20px;
-
-            border-radius:5px;
-
-            margin-bottom:20px;
-
-            display:flex;
-
-            gap:20px;
-
-            align-items:end;
-
-        }
-
-        .form-group{
-
-            display:flex;
-
-            flex-direction:column;
-
-        }
-
-        label{
-
-            margin-bottom:8px;
-
-            font-weight:bold;
-
-        }
-
-        select{
-
-            width:250px;
-
-            padding:10px;
-
-        }
-
-        button{
-
-            padding:10px 20px;
-
-            cursor:pointer;
-
-        }
-
-        table{
-
-            width:100%;
-
-            border-collapse:collapse;
-
-            background:white;
-
-        }
-
-        table th,
-        table td{
-
-            border:1px solid #ddd;
-
-            padding:12px;
-
-            text-align:left;
-
-        }
-
-        table th{
-
-            background:#1976d2;
-
-            color:white;
-
-        }
-
-        .grant{
-
-            background:#28a745;
-
-            color:white;
-
-            border:none;
-
-            padding:8px 15px;
-
-        }
-
-        .revoke{
-
-            background:#dc3545;
-
-            color:white;
-
-            border:none;
-
-            padding:8px 15px;
-
-        }
-
-        .granted{
-
-            color:green;
-
-            font-weight:bold;
-
-        }
-
-        .not-granted{
-
-            color:red;
-
-            font-weight:bold;
-
-        }
-
-    </style>
-
-</head>
-
-<body>
-
-<div class="container">
-
-<h2 class="page-title">
-
-Manage Form Access
-
-</h2>
-
-<form>
-
-<div class="filter-section">
-
-<div class="form-group">
-
-<label>
-
-Users
-
-</label>
-
-<select
-name="user_id">
-
-<option value="0">
-
-All Users
-
-</option>
-
-{foreach $arrAllUsers as $arrUser}
-
-<option
-value="{$arrUser.id}">
-
-{$arrUser.full_name}
-
-</option>
-
-{/foreach}
-
-</select>
-
-</div>
-
-<div class="form-group">
-
-<label>
-
-Forms
-
-</label>
-
-<select
-name="form_id">
-
-<option value="0">
-
-All Forms
-
-</option>
-
-{foreach $arrAllForms as $arrForm}
-
-<option
-value="{$arrForm.id}">
-
-{$arrForm.form_name}
-
-</option>
-
-{/foreach}
-
-</select>
-
-</div>
-
-<div class="form-group">
-
-<label>
-
-Access Status
-
-</label>
-
-<select
-name="access_status">
-
-<option value="all">
-
-All Access
-
-</option>
-
-<option value="Granted">
-
-Granted
-
-</option>
-
-<option value="Not Granted">
-
-Not Granted
-
-</option>
-
-</select>
-
-</div>
-
-<div>
-
-<button type="submit">
-
-Search
-
-</button>
-
-</div>
-
-</div>
-
-</form>
-
-<table>
-
-<tr>
-
-<th>
-
-User
-
-</th>
-
-<th>
-
-Email
-
-</th>
-
-<th>
-
-Form
-
-</th>
-
-<th>
-
-Status
-
-</th>
-
-<th>
-
-Action
-
-</th>
-
-</tr>
-
-{foreach $arrAccessList as $arrAccess}
-
-<tr>
-
-<td>
-
-{$arrAccess.full_name}
-
-</td>
-
-<td>
-
-{$arrAccess.email}
-
-</td>
-
-<td>
-
-{$arrAccess.form_name}
-
-</td>
-
-<td>
-
-{if $arrAccess.access_status=="Granted"}
-
-<span class="granted">
-
-Granted
-
-</span>
-
-{else}
-
-<span class="not-granted">
-
-Not Granted
-
-</span>
-
-{/if}
-
-</td>
-
-<td>
-{if $arrAccess.access_status=="Granted"}
-
-<form
-method="post"
-action="index.php?action=revokeFormAccess">
-
-<input
-type="hidden"
-name="user_id"
-value="{$arrAccess.user_id}">
-
-<input
-type="hidden"
-name="form_id"
-value="{$arrAccess.form_id}">
-
-<button
-type="submit"
-class="revoke"
-onclick="return confirm('Are you sure you want to revoke this form access?')">
-
-Revoke
-
-</button>
-
-</form>
-
-{else}
-
-<form
-method="post"
-action="index.php?action=grantFormAccess">
-
-<input
-type="hidden"
-name="user_id"
-value="{$arrAccess.user_id}">
-
-<input
-type="hidden"
-name="form_id"
-value="{$arrAccess.form_id}">
-
-<button
-type="submit"
-class="grant">
-
-Grant
-
-</button>
-
-</form>
-
-{/if}
-
-</td>
-
-</tr>
-
-{/foreach}
-
-</table>
-
-</div>
-
-</body>
-
-</html>
+function insertTag(strTag)
+{
+    tinymce.activeEditor.insertContent(strTag);
+}
